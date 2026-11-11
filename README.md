@@ -1,350 +1,139 @@
-# 🎬 Catálogo de Filmes — Tom Hanks
+# 📚 MangaCloud — Biblioteca Pessoal e Leitor Web de Mangás e HQs
 
-Aplicação web completa construída para navegar pelos filmes do Tom Hanks, integrada ao **TMDB API** em tempo real. Cada usuário possui seu próprio espaço isolado no banco de dados para salvar seus filmes favoritos e registrar comentários, sem acesso aos dados de outros usuários.
+**MangaCloud permite que leitores descubram obras, organizem estantes pessoais com capas personalizadas e leiam capítulos em um leitor web limpo com progresso sincronizado.**
 
-Desenvolvido para a disciplina de Arquiteturas Cloud , lecionada pelo professor **[@siriani](https://github.com/siriani)**.
-
-📄 **[Visualizar Relatório Bimestral P1](docs/P1_ISW055_Paulo_Henrique_Antunes.pdf)**  
-📘 **[Acessar Documentação Reversa Completa do Sistema (DOCUMENTACAO.md)](DOCUMENTACAO.md)** *(Especificação, Arquitetura "Big Picture", Regras de Negócio e Modelo de Dados — Atividade 8)*
+Desenvolvido para a disciplina de Introdução à Computação em Nuvem (ISW055), lecionada pelo professor **[@siriani](https://github.com/siriani)** ([github.com/siriani](https://github.com/siriani)).
 
 ---
 
-## 🚀 Funcionalidades Principais
+## 1. Nome e Frase
 
-- **Autenticação com JWT (Desacoplada):** Cadastro, Login seguro com senhas criptografadas (Bcrypt) e Recuperação de Senha via E-mail (Mailtrap), rodando em um microsserviço independente.
-- **Catálogo em Tempo Real:** Listagem dinâmica da filmografia do Tom Hanks consumida da API externa do TMDB.
-- **UX Premium (UI 2026):** Design *Glassmorphism* com tema cinematográfico, animações suaves, *Optimistic UI* (atualização instantânea ao favoritar) e *View Transitions API*.
-- **Pesquisa Local:** Barra de pesquisa instantânea para filtrar filmes pelo título.
-- **Isolamento de Dados (Multi-tenancy):** Favoritos e Comentários 100% segregados por usuário no MariaDB.
+**MangaCloud** — Plataforma SaaS de descoberta, organização de estantes pessoais e leitura online de mangás e quadrinhos que conecta catálogos externos a um leitor web sem anúncios intrusivos, com controle de progresso por página.
 
 ---
 
-## 🏗️ Arquitetura Inicial de Microsserviços (Histórico — Atividade 3)
+## 2. A Dor
 
-> 📌 **Nota Histórica:** As seções abaixo (Atividades 3 a 7) preservam o registro cronológico e as evidências visuais de cada entrega ao longo do semestre. Para consultar a **arquitetura final consolidada ("Big Picture")**, o **schema completo atualizado** e as **regras de negócio vigentes**, acesse o **[`DOCUMENTACAO.md`](DOCUMENTACAO.md)** ou a **[Seção da Atividade 8 no final deste README](#-classificação-saas-paas-e-iaas-do-projeto-atividade-8--encerramento)**.
+- **Quem sofre:** Leitores frequentes de mangás, manhwas e HQs digitais (estudantes e jovens adultos que acompanham de 5 a 20 obras simultaneamente no celular e no computador).
+- **Quando acontece:** Sempre que o leitor tenta retomar uma obra após alguns dias e não lembra em qual capítulo ou página parou, quando alterna entre o navegador do celular e o PC, ou quando tenta ler um capítulo novo e enfrenta dezenas de redirecionamentos, pop-ups maliciosos e páginas quebradas em sites informais.
+- **Quanto custa hoje (tempo, dinheiro e risco — hipótese de negócio):**
+  - **Tempo perdido:** Entre 10 e 20 minutos por sessão procurando em qual capítulo/página parou, reabrindo abas perdidas e fechando janelas de propaganda antes de conseguir ler.
+  - **Dinheiro mal aproveitado:** Leitores que compram capítulos avulsos em múltiplos aplicativos baseados em "moedas/tintas" acabam gastando valores elevados por mês sem ter uma biblioteca unificada, ou pagam assinaturas fragmentadas que cobrem apenas uma editora específica.
+  - **Risco de segurança e perda de dados:** Sites agregadores informais expõem o usuário a anúncios maliciosos (*malvertising* e *phishing*) e saem do ar sem aviso, fazendo o leitor perder toda a sua lista de leitura e histórico de capítulos lidos.
+- **Como essa pessoa resolve hoje:** Mantém dezenas de abas abertas no navegador do celular, anota números de capítulos manualmente no Bloco de Notas/planilhas ou usa rastreadores externos que apenas catalogam títulos, mas não oferecem leitura integrada nem salvam a página exata em que o usuário parou.
 
-O projeto evoluiu para uma arquitetura de Microsserviços. O Catálogo agora atua como porta de entrada pública, enquanto o **Serviço de Autenticação** opera apenas na rede interna do Docker, garantindo máxima segurança.
+---
+
+## 3. Persona
+
+*(Persona fictícia e ilustrativa para orientação do produto)*
+
+- **Nome e idade:** Lucas Ferreira, 22 anos.
+- **Rotina:** Estudante universitário e estagiário de TI que lê mangás diariamente no celular durante o trajeto de transporte público (40 minutos cada trecho) e continua a leitura no notebook à noite em casa.
+- **O que ele tenta fazer:** Manter suas obras separadas em estantes temáticas (*"Lendo no Ônibus"*, *"Shounen de Fim de Semana"*, *"Pausados"*), descobrir novos títulos filtrados por gênero e idioma (`pt-br` ou `en`), e continuar a leitura exatamente da página onde parou quando troca do celular para o notebook.
+- **O que atrapalha:** As abas do celular recarregam ou fecham sozinhas, fazendo-o esquecer se parou no capítulo 42 ou 47; quando abre no notebook, seu histórico não está sincronizado; e a experiência nos sites comuns é poluída por banners que cobrem os balões de fala e dificultam a leitura em telas móveis.
+
+---
+
+## 4. Concorrentes e Alternativas
+
+| Alternativa Atual | Utilidade hoje | O que faz mal (Limitações para a Persona) |
+| ----------------- | -------------- | ----------------------------------------- |
+| **1. Sites agregadores informais + Abas abertas no navegador** | Acesso rápido sem cadastro inicial no navegador. | Exibem pop-ups e redirecionamentos agressivos, não sincronizam histórico entre celular e PC, e perdem o progresso do leitor sempre que o cache limpa ou o domínio sai do ar. |
+| **2. Planilhas / Bloco de Notas + Rastreadores apenas de catálogo (MyAnimeList / AniList)** | Permitem listar obras acompanhadas e dar notas. | Não possuem leitor integrado (*Web Reader*), exigem atualização manual a cada capítulo lido e não guardam a página exata dentro do capítulo nem permitem estantes privadas com upload de capa própria no mesmo ambiente de leitura. |
+| **3. Apps de capítulos pagos por moeda (Pay-per-chapter) ou exclusivos de uma única editora** | Aplicativos estáveis e livres de pop-ups maliciosos. | Cobram por capítulo desbloqueado individualmente (tornando a leitura contínua cara para quem lê várias séries) ou restringem o catálogo a um único selo editorial, sem organização flexível de biblioteca pessoal. |
+
+---
+
+## 5. Proposta de Valor
+
+**Para leitores recorrentes de mangás e HQs, o MangaCloud une catálogo sob demanda, estantes pessoais customizáveis e um leitor web limpo com retomada automática de página em um único lugar, eliminando abas perdidas, anúncios intrusivos e anotações manuais de progresso.**
+
+---
+
+## 6. Modelo de Receita com Stripe
+
+*(Modelo comercial proposto como hipótese de negócio da disciplina; a execução atual opera o Stripe exclusivamente em **modo de teste**, utilizando conteúdo sintético/demonstrativo autorizado para validação do paywall, enquanto a contratação/licenciamento de fonte comercial para produção permanece como etapa de negócio separada).*
+
+A monetização do SaaS ocorre por **assinatura mensal recorrente via Stripe Checkout + Webhooks**, dividindo a experiência do papel `leitor` em dois planos:
+
+| Recurso | Plano Leitor Free (R$ 0/mês) | Plano Leitor Pro — R$ 19,90/mês *(hipótese de preço)* |
+| ------- | ---------------------------- | ----------------------------------------------------- |
+| **Navegação no catálogo, busca, filtros por gênero/tags e sinopse** | ✅ Ilimitado | ✅ Ilimitado |
+| **Criação de estantes pessoais (CRUD completo) + upload de capa personalizada (MinIO)** | ✅ Incluso | ✅ Incluso |
+| **Marcação de favoritos e visualização da lista de capítulos** | ✅ Incluso | ✅ Incluso |
+| **Acesso ao Web Reader (leitura de páginas dos capítulos)** | 🔒 **Até os 3 primeiros capítulos canônicos por obra/idioma** | 🌟 **Acesso completo aos capítulos disponíveis e autorizados na fonte** |
+| **Salvamento automático e sincronização de progresso (capítulo + página exata)** | ❌ Não incluso | 🌟 **Sincronização automática de página entre dispositivos** |
+
+- **O que o Plano Free limita:** Permite explorar todo o catálogo, organizar estantes pessoais com capas próprias, favoritar obras e experimentar o leitor nos **3 capítulos iniciais canônicos** de cada obra/idioma. Ao tentar abrir o 4º capítulo em diante, o backend bloqueia a entrega do manifesto de páginas (`403 PLAN_REQUIRED`) e apresenta o convite de assinatura.
+- **Por que o leitor pagaria o Plano Pro (hipótese de R$ 19,90/mês):** Leitores assíduos acompanham obras longas (dezenas ou centenas de capítulos) em mais de um dispositivo e valorizam continuar qualquer série além do 3º capítulo sem interrupções, com retomada automática na página exata em que pararam.
+
+---
+
+## 7. Métricas de Sucesso
+
+O acompanhamento da saúde do produto baseia-se em 5 indicadores operacionais e financeiros (sem projeções fictícias; apurados a partir dos eventos reais do sistema):
+
+1. **Ativação de Biblioteca:** Proporção de novos usuários cadastrados (`leitor`) que criam pelo menos 1 estante pessoal ou adicionam sua primeira obra favorita e abrem ao menos 1 capítulo no leitor.
+2. **Taxa de Conversão no Paywall (Free → Pro):** Percentual de leitores que atingem o bloqueio do 4º capítulo (`leitura.bloqueada`) e concluem a assinatura no Stripe Checkout (`assinatura.atualizada`).
+3. **Assinantes Pro Ativos:** Total de usuários com assinatura vigente e período de acesso válido confirmado via webhook do Stripe.
+4. **MRR (*Monthly Recurring Revenue*):** Receita recorrente mensal calculada pelo número de assinaturas Pro ativas × valor mensal do plano (R$ 19,90 na hipótese base).
+5. **Retenção Mensal e Engajamento de Leitura:** Proporção de assinantes que renovam a assinatura no ciclo seguinte e frequência semanal de atualização de progresso (`progresso.atualizado`).
+
+---
+
+## 8. Lean Canvas
+
+| Bloco | Definição no MangaCloud (Hipótese de Produto) |
+| ----- | --------------------------------------------- |
+| **1. Problema** | 1. Leitores perdem em qual capítulo e página pararam ao alternar entre celular e computador.<br>2. Sites agregadores informais prejudicam a leitura com pop-ups intrusivos, páginas quebradas e perda de histórico.<br>3. Rastreadores de lista (como planilhas ou catálogos avulsos) são separados do leitor e exigem anotação manual. |
+| **2. Segmentos de Clientes** | **Público principal:** Estudantes e jovens adultos que leem mangás/HQs semanalmente em mais de um dispositivo.<br>**Early Adopters:** Leitores que já tentam organizar listas manualmente no celular/PC e buscam uma estante integrada a um leitor limpo. |
+| **3. Proposta Única de Valor** | Descubra obras, organize estantes pessoais com capas próprias e leia em um Web Reader limpo que lembra exatamente a página onde você parou. |
+| **4. Solução** | 1. **Estantes Pessoais com Capas (CRUD + MinIO):** Organização privada de obras com upload de capa personalizada.<br>2. **Web Reader com Gatekeeper no Servidor:** Leitura fluida dos 3 capítulos iniciais no Free e desbloqueio completo no Pro validado no backend.<br>3. **Progresso Sincronizado por Página:** Gravação automática e versionada do capítulo e página atual para assinantes Pro. |
+| **5. Canais** | Comunidades de leitores de mangás/quadrinhos no Discord e Reddit, perfis de recomendações no TikTok/Instagram e compartilhamento direto por usuários da plataforma. |
+| **6. Fontes de Receita** | Assinatura mensal **MangaCloud Pro** via **Stripe** (hipótese de **R$ 19,90/mês** para leitura completa de capítulos autorizados e sincronização automática de página; plano Free gratuito com estantes e até 3 capítulos iniciais por obra). |
+| **7. Estrutura de Custos** | Infraestrutura em nuvem (VM Proxmox + Docker Compose com Node.js/TypeScript, MariaDB, Redis e MinIO), armazenamento de objetos (avatares e capas), taxas de transação do Stripe e eventual licenciamento comercial de conteúdo. |
+| **8. Métricas-Chave** | Cadastros totais, taxa de ativação (1ª estante/leitura), bloqueios de paywall vs. conversões, total de assinantes Pro ativos, **MRR** e taxa de retenção/cancelamento (*churn*). |
+| **9. Vantagem Injusta** | Experiência unificada que combina curadoria de estantes privadas customizáveis com retomada exata de página e arquitetura de adaptadores desacoplados (permitindo plugar fontes licenciadas sem reescrever a biblioteca pessoal dos usuários). |
+
+---
+
+## 9. Mapa de Reaproveitamento da Arquitetura
+
+Toda a infraestrutura construída ao longo da disciplina (**mesma stack no Portainer, mesmos containers, limites de memória de 1 GB por container e mesmo subdomínio**) é reaproveitada diretamente no **MangaCloud**:
+
+| Peça do Projeto Atual | O que vira no SaaS | No MangaCloud |
+| --------------------- | ------------------ | ------------- |
+| **Catálogo de filmes (TMDB)** | Recurso de descoberta e leitura sob demanda | **Adaptador de Catálogo e Leitura (`providers`):** busca paginada de obras, tags/gêneros, detalhes, lista de capítulos por idioma e manifesto de páginas autorizado no backend (sem armazenar capítulos no banco nem no MinIO). |
+| **Favoritos e Comentários** | Recurso principal do domínio (CRUD + Isolamento) | **Estantes Pessoais (`estantes`, `estante_itens`), Favoritos (`favoritos_manga`) e Progresso (`progresso_leitura`):** CRUD completo das próprias estantes com isolamento estrito por `usuario_id`. |
+| **Microsserviço de login (`auth-service`) + RBAC** | Autenticação JWT e 3 papéis do negócio | **Papéis `leitor`, `curador` e `admin`:** cadastro público gera `leitor`; `curador` acessa diagnóstico de integração/cobertura do provedor; `admin` gerencia papéis e auditoria (separados do plano `Free`/`Pro`). |
+| **Logs e auditoria (`log-service` + Redis)** | Eventos de negócio e trilha de segurança | Eventos estruturados: `estante.criada`, `estante.editada`, `estante.excluida`, `estante.item_adicionado`, `estante.item_removido`, `estante.capa_enviada`, `estante.capa_removida`, `favorito.adicionado`, `favorito.removido`, `leitura.liberada`, `leitura.bloqueada`, `progresso.atualizado`, `assinatura.atualizada` e `usuario.papel_alterado`. |
+| **Upload e perfil (`MinIO` Object Storage)** | Arquivos privados do domínio | **Capas Personalizadas de Estante (`estante_capas`) + Avatares de Perfil:** bucket privado para capas das estantes com validação real de imagem e acesso restrito ao dono, além do bucket de foto de perfil. |
+| **Plano Premium (`Stripe` Checkout + Webhook)** | Assinatura SaaS e Gatekeeper de Leitura | **Assinatura Leitor Pro (`assinaturas`, `stripe_eventos`):** Stripe Checkout em modo de teste + Webhook idempotente controlando o ciclo da assinatura que libera leitura além do 3º capítulo canônico e salvamento automático de página. |
+| **Swagger / OpenAPI, Docker e Observabilidade** | Contratos da API e operação contínua | Documentação OpenAPI (`/api-docs`) atualizada com contratos de mangás, manifesto de leitura, estantes, capas, progresso, curadoria e erros padronizados (`400`, `401`, `403 PLAN_REQUIRED`, `404`, `409`, `413`, `415`, `502/503/504`). |
+
+---
+
+## 10. Arquitetura e Fronteiras do Sistema
 
 ```mermaid
-graph TD
-    A[Navegador / Cliente React] -->|Acesso via Porta 3001| B[Catálogo / API Gateway]
-    B -->|Busca de Filmes| C[API TMDB Externa]
-    B -->|Consultas Isoladas| D[(Banco MariaDB)]
-    B -.->|Rede Docker Interna| E[Auth Service - Interno]
-    E -->|Gera Token e Valida| D
-    E -->|Disparo de e-mail| F[Mailtrap SMTP]
+flowchart LR
+    U["Navegador React"] --> B["Backend MangaCloud"]
+    B --> A["auth-service (JWT e RBAC)"]
+    A --> DB[("MariaDB existente")]
+    B --> DB
+    B --> P["Adaptador de Catálogo e Leitura"]
+    P --> E["Provedor Externo / Fixtures de Demonstração"]
+    B --> M["MinIO (Avatar e Capa de Estante)"]
+    B --> L["log-service"]
+    A --> L
+    L --> R[("Redis Streams")]
+    B --> S["Stripe Checkout (Modo Teste)"]
+    S --> W["Webhook Stripe Verificado"]
+    W --> DB
 ```
 
-### 🛠️ Stack Tecnológica
-| Camada | Tecnologia |
-| ------ | ---------- |
-| **Frontend** | React 19 + TypeScript + Vite + Lucide Icons |
-| **Backend (Catálogo)**  | Node.js + Express + TypeScript |
-| **Microservice (Auth)** | Node.js + Express + Nodemailer |
-| **Banco**    | MariaDB / MySQL (Driver `mysql2`) |
-| **Segurança**| JWT (JSON Web Tokens) + Bcrypt |
-| **Deploy**   | Docker Compose (Multi-container) |
+### Modo Demonstrativo e Restrições de Provedor Externo
 
----
-
-## 📸 Demonstração: Fluxo de Recuperação de Senha
-
-
-| Pedido de Recuperação | E-mail Recebido no Mailtrap |
-| :---: | :---: |
-| ![Pedido](doc/pedido-recuperacao.png) | ![Mailtrap](doc/email-mailtrap.png) |
-
-| Redefinição de Senha | Segurança (Token Expirado/Usado) |
-| :---: | :---: |
-| ![Nova Senha](doc/senha-trocada.png) | ![Erro Segurança](doc/token-recusado.png) |
-
----
-
-## 🔒 Segurança e Tratamento de Variáveis
-
-O professor instruiu explicitamente: **Nenhuma credencial deve ser exposta no código ou no navegador**.
-Por conta disso:
-1. **O frontend nunca faz chamadas diretas ao TMDB ou ao MariaDB.**
-2. Todas as chaves secretas residem apenas nas **Variáveis de Ambiente** do servidor.
-3. O `.env` está protegido no `.gitignore`.
-
-### ⚙️ Arquivo `.env.example`
-O `docker-compose.yml` exige as seguintes variáveis na raiz do projeto:
-```env
-PORT=3001
-DB_HOST=ip_do_seu_banco
-DB_PORT=3306
-DB_USER=seu_usuario
-DB_PASSWORD="sua_senha_com_aspas"
-DB_NAME=seu_banco
-TMDB_API_KEY=sua_chave_tmdb
-JWT_SECRET=super_segredo_jwt
-
-# Mailtrap Config (Para testar o Esqueci a Senha)
-MAILTRAP_HOST=sandbox.smtp.mailtrap.io
-MAILTRAP_PORT=2525
-MAILTRAP_USER=seu_usuario_mailtrap
-MAILTRAP_PASS=sua_senha_mailtrap
-```
-
----
-
-## 🗄️ Esquema do Banco de Dados
-
-As queries backend filtram rigidamente por `usuario_id = ?`, impedindo vazamento de dados. A tabela `reset_tokens` e a coluna `role` foram adicionadas para gerenciar a recuperação de senha e autorização.
-
-```sql
-CREATE TABLE usuarios (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  nome VARCHAR(100) NOT NULL,
-  email VARCHAR(150) UNIQUE NOT NULL,
-  senha_hash VARCHAR(255) NOT NULL,
-  role VARCHAR(20) DEFAULT 'usuario',
-  criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE reset_tokens (
-  token VARCHAR(100) PRIMARY KEY,
-  usuario_id INT NOT NULL,
-  criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  expira_em TIMESTAMP NOT NULL,
-  usado BOOLEAN DEFAULT FALSE,
-  FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
-);
-
-CREATE TABLE favoritos (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  usuario_id INT NOT NULL,
-  tmdb_movie_id INT NOT NULL,
-  titulo VARCHAR(255) NOT NULL,
-  poster_path VARCHAR(255),
-  criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
-  UNIQUE (usuario_id, tmdb_movie_id)
-);
-
-CREATE TABLE comentarios (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  usuario_id INT NOT NULL,
-  tmdb_movie_id INT NOT NULL,
-  texto TEXT NOT NULL,
-  criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
-);
-```
-
----
-
-## 🛡️ 
-Controle de Acesso por Papel (RBAC) - Atividade 4
-
-Para a Atividade 4, a aplicação evoluiu para garantir segurança real no lado do servidor, implementando RBAC.
-
-### Permissões Documentadas (Requisito 1)
-- **`usuario`**: O papel padrão. Pode navegar pelo catálogo, favoritar filmes, adicionar comentários aos filmes e excluir **apenas os próprios comentários**.
-- **`admin`**: O papel de moderação. Pode fazer tudo o que o `usuario` faz, e tem a exclusividade de **apagar qualquer comentário de qualquer usuário**, atuando como moderador da plataforma.
-
-### Padrão Arquitetural: A ou B? (Requisito 5)
-A nossa aplicação utiliza o **Padrão B (claims no token JWT)**.
-
-**Por quê?** 
-Ao invés de fazer o catálogo consultar o `auth-service` a cada ação para saber as permissões do usuário (Padrão A), nós injetamos o `role` do usuário no momento da criação do token JWT.
-O Catálogo consegue interceptar esse token no Middleware (`authMiddleware.ts`), validar a assinatura usando o mesmo `JWT_SECRET` e liberar (ou negar com `403`) a rota localmente, baseando-se no `role` presente nas *claims* do token. Isso economiza chamadas de rede e deixa o sistema mais rápido, com o *trade-off* de que a mudança de papel de um usuário só entra em vigor quando o token expirar e for renovado.
-
-Se mudássemos para o **Padrão A**, o catálogo (backend) precisaria, em cada endpoint restrito, fazer uma chamada HTTP (via `fetch` ou `axios`) para uma rota do `auth-service` perguntando se aquele usuário tem a permissão, o que acoplaria ainda mais os serviços.
-
-### Testando Localmente
-A forma mais fácil de rodar o projeto agora é subindo a infraestrutura completa do Docker Compose, que orquestra automaticamente a rede interna do Microsserviço e expõe o Catálogo:
-
-```bash
-docker compose up -d --build
-```
-Após o build, abra `http://localhost:8224` no seu navegador (porta `8224` do host mapeada para a porta `3001` do container `catalogo`).
-
----
-
-## 📋 Auditoria e Logs (Atividade 5)
-
-Foi criado um microsserviço independente (`log-service`) dedicado exclusivamente à auditoria e observabilidade das ações da plataforma, utilizando **Redis Streams**.
-
-### 🐳 Topologia Docker
-A orquestração do sistema garante que a rede interna proteja os serviços. Apenas o catálogo expõe porta ao mundo exterior.
-```yaml
-  log-service:
-    build:
-      context: ./log-service
-      dockerfile: Dockerfile
-    container_name: log_tom_hanks
-    networks:
-      - tom_hanks_net
-    environment:
-      - LOG_PORT=3002
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-      - AUDIT_STREAM_MAXLEN=${AUDIT_STREAM_MAXLEN}
-      - INTERNAL_SERVICE_TOKEN=${INTERNAL_SERVICE_TOKEN}
-    depends_on:
-      redis:
-        condition: service_healthy
-
-  redis:
-    image: redis:7-alpine
-    container_name: redis_tom_hanks
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
-    networks:
-      - tom_hanks_net
-    volumes:
-      - redis_data:/data
-```
-
-### 📸 Evidências
-
-**Print 1: Consulta de logs como Admin**
-![Logs como Admin](doc/print_admin.png)
-
-**Print 2: Consulta barrada (403) para usuário comum, devidamente auditada**
-![Acesso Negado 403](doc/print_403.png)
-
-### 🏗️ Decisões Arquiteturais
-
-- **Justificativa do Redis Streams (ADR-002):** Log de auditoria tem um padrão de uso muito distinto de dado de negócio: escreve muito, lê pouco, e não requer transações complexas. O MariaDB não é a ferramenta certa. Redis Streams resolve o problema perfeitamente oferecendo ordem cronológica absoluta, geração de timestamp nativa (`XADD`) e controle fácil de limite de memória com o parâmetro `MAXLEN`.
-- **Emissão Fire-and-Forget (ADR-004):** A comunicação com o serviço de log é feita de forma assíncrona (sem aguardar o término da requisição com `await`). Motivo: **a auditoria não pode derrubar o negócio**. Se o `log-service` ficar indisponível, falhamos a emissão silenciosamente, garantindo que o usuário consiga continuar usando o catálogo sem perceber a queda do micro-serviço.
-- **Evitando Eventos Duplicados:** O middleware de auditoria de acessos negados (`auditDenials`) existe *apenas* no Catálogo (Gateway). Como todo o tráfego do `auth-service` passa obrigatoriamente por ele, colocar o interceptor nos dois locais geraria logs duplicados na trilha.
-- **Ressalva do IP (RF-10):** Você notará que eventos do `auth-service` (ex: login) registram o IP do container do catálogo (ex: `172...`), enquanto eventos diretos no catálogo registram o IP do host da máquina/usuário. Isso é esperado, visto que o Catálogo atua como *proxy reverso* transparente e, propositalmente, não ativamos repasses de `trust proxy` para fins educacionais nesta etapa.
-
----
-
-## 📖 Documentação da API com Swagger/OpenAPI (Atividade Extra)
-
-Para garantir que o contrato da API seja visível e testável sem precisar ler nenhuma linha de código, a documentação interativa foi implementada usando **Swagger UI** e a especificação padrão **OpenAPI**.
-
-Foram documentados 2 microsserviços da arquitetura:
-1. **Catálogo (Backend):** O arquivo de especificação está localizado em `backend/src/docs/openapi.yaml`.
-2. **Auth Service:** O arquivo de especificação está localizado em `auth-service/src/docs/openapi.yaml`.
-
-### 🛠️ Ferramentas Utilizadas
-- `swagger-ui-express`: Usado para ler o arquivo da especificação e renderizar a página interativa do Swagger diretamente na aplicação Express.
-- `yamljs`: Usado para fazer o parser do arquivo YAML nativo para objetos do JavaScript.
-
-### 📸 Evidência: Chamada Real pelo Navegador ("Try it out")
-Abaixo está a demonstração da interface do Swagger UI rodando localmente, mostrando a expansão de um endpoint e a execução real de uma requisição contra a API:
-
-![Demonstração do Swagger UI rodando](doc/swagger.png)
-
-### 🚀 Como Acessar a Documentação
-Com os containers rodando via Docker Compose, você pode acessar a interface interativa da documentação chamando a rota `/api-docs`. 
-
-Considerando a porta mapeada na rede do Catálogo, basta abrir no navegador:
-```bash
-http://localhost:8224/api-docs
-```
-
----
-
-## 🖼️ Upload e Perfil de Usuário (Atividade 6)
-
-A aplicação agora se assemelha a uma rede social, permitindo o upload de fotos de perfil (arquivos binários) e a gestão de biografias, com rígido controle de autorização.
-
-### 📸 Evidências da Atividade
-
-Aqui estão os prints solicitados demonstrando o funcionamento:
-
-**1. Perfil com Foto Salva no MinIO e Biografia:**
-![Perfil com Foto e Bio](doc/print_perfil.png)
-
-**2. Sistema de Segurança (Erro 403) bloqueando edição de outros usuários:**
-![Acesso Negado 403](doc/print_403_perfil.png)
-
-### 🐳 MinIO no Docker Compose
-Para não inflar o MariaDB com arquivos binários (BLOB), adicionamos um *Object Storage* compatível com S3 (MinIO) diretamente na nossa arquitetura via Docker Compose:
-
-```yaml
-  minio:
-    image: elestio/minio:latest
-    container_name: minio_tom_hanks
-    command: server /data --console-address ":9001"
-    environment:
-      - MINIO_ROOT_USER=admin
-      - MINIO_ROOT_PASSWORD=adminpassword
-    ports:
-      - "9000:9000" # Nota histórica: no docker-compose.yml final foi ajustado para "9005:9000" e "9006:9001"
-      - "9001:9001"
-    networks:
-      - tom_hanks_net
-    volumes:
-      - minio_data:/data
-```
-
-### 🧠 Decisão de Arquitetura: Storage Público ou Pré-assinado?
-
-**Decisão:** Optamos por usar um **Bucket com Leitura Pública** (*Public Read*) e gerenciamento de criação via SDK do MinIO Node.js (sem container `minio-mc`).
-
-**Explicação do Trade-off:**
-Fotos de perfil, no contexto de uma "rede social" focada em catálogo, são informações publicamente consumidas dezenas de vezes a cada carregamento de página e scrollagem (ex: comentários no perfil de um usuário). 
-* **Se usássemos URLs Pré-assinadas:** O backend teria que gastar recursos e tempo de processamento gerando tokens para *todas as imagens* a cada vez que a página fosse montada, além de inutilizar completamente a capacidade de *cache* de imagens do navegador, o que traria lentidão na renderização.
-* **Com o Bucket Público:** Ganhamos máxima velocidade e otimização de cache do navegador. O *trade-off* é a impossibilidade de revogar o acesso àquele arquivo de quem já possui sua URL direta, o que é perfeitamente aceitável para fotos públicas de perfil.
-
-### 🔒 Segurança de Edição
-Na rota `PUT /api/profile` (`backend/src/routes/profile.ts`), o identificador do usuário autenticado é obtido do token JWT (`req.user.id`). Caso a requisição envie um campo `id` no corpo JSON divergente do `userId` do token (`String(id) !== String(userId)`), a API rejeita a operação com `HTTP 403 Forbidden`; caso contrário, executa o `UPDATE` da biografia utilizando o `userId` extraído do JWT.
-
----
-
-## 💳 Plano Premium com Stripe (Atividade 7)
-
-O modelo de negócio foi implementado! Usuários agora podem assinar um plano "Premium" para apoiar a plataforma e receber o selo 🌟 Premium no perfil, utilizando a infraestrutura global de pagamentos do Stripe.
-
-### 📸 Evidências da Atividade
-
-Conforme solicitado, seguem os prints do fluxo de pagamento concluído com sucesso:
-
-**1. Checkout do Stripe em modo de teste sendo concluído com sucesso:**
-![Checkout Stripe Concluído](doc/checkout-sucesso.png) *(Nota: tire este print e substitua a imagem)*
-
-**2. Usuário virando premium no banco depois do webhook, e do benefício premium funcionando:**
-![Benefício no Perfil (Selo)](doc/selo-premium.png)
-![Banco de Dados Atualizado](doc/banco-premium.png)
-
-### 🏗️ Como a Arquitetura foi Construída
-
-1. **Separação de Responsabilidades (Segurança Máxima):** 
-Nenhum dado de cartão de crédito chega ao nosso servidor ou banco de dados MariaDB. Toda a página de checkout é delegada e hospedada pelos servidores blindados do Stripe. Nós apenas iniciamos uma Sessão de Checkout e recebemos a URL segura para onde o usuário é redirecionado.
-
-2. **O Pulo do Gato (Metadata):** 
-Ao criar a sessão, embutimos nosso `userId` interno no campo `metadata` do Stripe. Dessa forma, quando o pagamento for finalizado lá fora, o Stripe nos "devolve" esse ID para sabermos quem devemos promover a Premium.
-
-3. **Comunicação Assíncrona (Webhooks):** 
-Em vez de esperar o usuário ser redirecionado para a tela de "Sucesso" (ele poderia simplesmente fechar a aba), a nossa aplicação implementou um *Webhook* (`/api/stripe/webhook`). O Stripe faz uma chamada HTTP (backend para backend) em modo assíncrono avisando que a transação `checkout.session.completed` ocorreu.
-*   **Armadilha superada:** O framework Express normalmente transforma todo `req.body` em JSON nativo (`app.use(express.json())`). Porém, o Stripe exige o *Raw Body* (Buffer) original da requisição HTTP para conseguir rodar o algoritmo de criptografia e validar se a requisição realmente partiu dos servidores deles. Resolvemos isso inserindo a rota do Webhook isoladamente *antes* do parser JSON.
-
-### 🚀 Dica de Infraestrutura: Testando Localmente
-O webhook local (porta `3001` no container) não está acessível na internet pública para o Stripe enviar o ping.
-Para resolver a dor de cabeça de logins conflitantes do CLI do Stripe (que causavam erros de permissão), criamos o prático utilitário `listen.sh` na pasta do backend. Ele abre o túnel exigindo explicitamente a chave correta:
-
-```bash
-cd backend
-./listen.sh
-```
-Isso imediatamente intercepta e encaminha os pagamentos de teste para a rota webhook do seu container!
-
----
-
-## ☁️ Classificação SaaS, PaaS e IaaS do Projeto (Atividade 8 — Encerramento)
-
-Ao final da disciplina, o projeto atravessa simultaneamente as **três camadas de responsabilidade em computação em nuvem** (**IaaS**, **PaaS** e **SaaS**). Abaixo está o mapeamento de cada peça utilizada pelo sistema e a justificativa de onde ela se encaixa:
-
-| Peça do Sistema | Camada | Justificativa (Uma Frase) |
-| --------------- | ------ | ------------------------- |
-| **VM Proxmox (Ubuntu + Docker)** *(Contexto da disciplina)* | **IaaS** (*Infrastructure as a Service*) | O provedor da infraestrutura (Fatec) entrega apenas máquina virtual, disco e rede, enquanto nós instalamos e administramos o sistema operacional Linux e o motor do Docker. |
-| **Containers da Aplicação (`catalogo`, `auth-service`, `log-service`)** | **PaaS** (*Platform as a Service — perspectiva do código*) | Sob a ótica do nosso código, o ambiente de containers já entrega o runtime Node.js e a rede interna (`tom_hanks_net`) prontos, exigindo apenas o deploy da imagem sem reinstalar o SO. |
-| **Containers de Dados e Storage (`redis`, `minio`)** | **PaaS** (*Serviços de plataforma em container*) | São motores de persistência (Redis Streams e Object Storage S3) executados via imagens prontas no Compose, consumidos pelo código via protocolo/SDK sem instalação manual no SO. |
-| **Banco Relacional MariaDB (`DB_HOST:3306`)** | **PaaS** (*Perspectiva da aplicação*) | É consumido remotamente pela aplicação como um motor de banco pronto via string de conexão (`mysql2`), onde gerenciamos apenas o schema SQL e os dados da aplicação. |
-| **Stripe (Checkout + Webhooks)** | **SaaS** (*Software as a Service*) | Produto pronto de terceiro consumido via API/SDK e webhooks, em que toda a infraestrutura e segurança PCI-DSS da página de pagamento são operadas pelo Stripe. |
-| **Mailtrap (E-mail Transacional SMTP)** | **SaaS** (*Software as a Service*) | Serviço externo pronto consumido via SMTP pelo `auth-service` para entrega de e-mails de redefinição de senha, sem hospedarmos servidor de e-mail próprio. |
-| **TMDB (API REST + CDN de Pôsteres)** | **SaaS** (*Software/Data as a Service*) | Produto externo pronto consumido via chamadas HTTP pelo backend e pelo navegador para obter a filmografia e imagens do Tom Hanks sem infraestrutura local. |
-
-> **Nota de Arquitetura:** Adotamos na camada **PaaS** a perspectiva didática proposta na disciplina (como o código enxerga a plataforma). Não há configuração ou evidência de provedor PaaS/DBaaS comercial externo no repositório: o ambiente Docker Compose é orquestrado pela própria equipe sobre o host/VM, e o MariaDB é acessado externamente ao Compose via `DB_HOST`.
-
-### 📘 Documentação Reversa Completa
-
-Toda a engenharia reversa do sistema final — incluindo **Especificação Funcional**, **Diagrama de Arquitetura ("Big Picture")**, **22 Regras de Negócio ("Se X, então Y") extraídas do código** e **Modelo de Dados (ER + Redis + MinIO + Stripe)** — está registrada no documento dedicado:
-
-👉 **[Ler a Documentação Reversa Completa (`DOCUMENTACAO.md`)](DOCUMENTACAO.md)**
+- **Gatekeeper Server-Side:** O frontend nunca decide se um capítulo pode ser lido. Toda requisição de leitura passa pelo serviço central de autorização no backend, que verifica a sessão JWT, o vínculo do capítulo, a posição canônica (capítulos `1` a `3` liberados no plano Free) e a assinatura vigente no banco antes de retornar o manifesto de páginas. Em caso de bloqueio (`403 PLAN_REQUIRED`), nenhuma URL ou hash de imagem é trafegado na resposta.
+- **Conformidade com Termos de API Externa:** A documentação pública do MangaDex restringe a venda direta de acesso aos dados fornecidos pela sua API. Por isso, a arquitetura do MangaCloud desacopla o provedor por meio de adaptadores (`CATALOG_PROVIDER`) e executa a demonstração do paywall e do ciclo de assinatura Stripe (em modo de teste) sobre **fixtures determinísticas de conteúdo sintético/demonstrativo autorizado**, mantendo qualquer integração técnica com API pública separada de cobrança comercial enquanto uma fonte licenciada não for contratada.
