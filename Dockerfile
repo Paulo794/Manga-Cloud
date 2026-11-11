@@ -15,7 +15,8 @@ WORKDIR /app
 COPY backend/package*.json ./backend/
 RUN cd backend && npm install
 
-# Código do backend
+# Código do backend e scripts SQL versionados (db/)
+COPY db ./db
 COPY backend ./backend
 
 # Instala tsx para rodar TypeScript diretamente
