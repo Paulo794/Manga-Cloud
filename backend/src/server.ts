@@ -1,61 +1,26 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import pool from './db';
-import swaggerUi from 'swagger-ui-express';
-import YAML from 'yamljs';
+import { createApp } from './app';
+import { MinioStore, processPendingMinioDeletions } from './services/storage';
 
-dotenv.config();
-
-const app = express();
-const port = process.env.PORT || 3001;
-
-import authRoutes from './routes/auth';
-import moviesRoutes from './routes/movies';
-
-app.use(cors());
-
-// A Rota do Webhook do Stripe DEVE vir ANTES do express.json()
-import { handleStripeWebhook } from './controllers/stripeWebhook';
-app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
-
-// Body parser normal para as outras rotas
-app.use(express.json());
-
-import stripeRoutes from './routes/stripe';
-app.use('/api/stripe', stripeRoutes);
-
-import { auditDenials } from './middleware/auditDenials';
-app.use(auditDenials);
-
-import path from 'path';
-
-// Documentação Swagger
-const swaggerPath = path.join(process.cwd(), 'src', 'docs', 'openapi.yaml');
-const swaggerDocument = YAML.load(swaggerPath);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-
-// Rotas da aplicação
-app.use('/api/auth', authRoutes);
-app.use('/api/movies', moviesRoutes);
-
-import profileRoutes from './routes/profile';
-app.use('/api/profile', profileRoutes);
-
-import adminLogsRoutes from './routes/adminLogs';
-app.use('/api/admin', adminLogsRoutes);
-
-// Servir o frontend (pasta dist construída pelo Vite)
-app.use(express.static(path.join(__dirname, '../../frontend/dist')));
-
-// Qualquer outra rota não-API é redirecionada para o React
-app.use((req, res) => {
-  res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
-});
-
-import { setupMinio } from './config/minio';
-
-app.listen(port, async () => {
-  console.log(`Servidor rodando na porta ${port}`);
-  await setupMinio();
+if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET deve ser configurado.');
+const store = new MinioStore();
+const app = createApp({ store });
+const server = app.listen(Number(process.env.PORT || 3001), () => console.log('MangaCloud iniciado.'));
+server.requestTimeout = 30000;
+server.headersTimeout = 15000;
+let initialized = false;
+store.ensure().then(() => { initialized = true; }).catch(() => console.error('[Storage] Inicialização pendente. Verifique configuração e saúde do MinIO.'));
+let cleaning = false;
+const worker = setInterval(async () => {
+  if (cleaning) return;
+  cleaning = true;
+  try { if (!initialized) { await store.ensure(); initialized = true; } await processPendingMinioDeletions(pool, store); }
+  catch { console.error('[Storage] Reconciliação temporariamente indisponível.'); }
+  finally { cleaning = false; }
+}, 30000);
+worker.unref();
+for (const signal of ['SIGTERM', 'SIGINT'] as const) process.on(signal, () => {
+  clearInterval(worker);
+  server.close(() => { pool.end().finally(() => process.exit(0)); });
 });

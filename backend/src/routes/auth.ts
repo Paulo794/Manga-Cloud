@@ -1,87 +1,31 @@
-import { Router } from 'express';
-import { authenticateToken } from '../middleware/authMiddleware';
-
-const router = Router();
-const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://auth-service:3000';
-
-// Proxy para Registro
-router.post('/register', async (req, res) => {
-  try {
-    const response = await fetch(`${AUTH_SERVICE_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(req.body)
-    });
-    const data = await response.json();
-    res.status(response.status).json(data);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erro ao se comunicar com o serviço de autenticação' });
-  }
-});
-
-// Proxy para Login
-router.post('/login', async (req, res) => {
-  try {
-    const response = await fetch(`${AUTH_SERVICE_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(req.body)
-    });
-    const data = await response.json();
-    res.status(response.status).json(data);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erro ao se comunicar com o serviço de autenticação' });
-  }
-});
-
-// Proxy para Esqueci a Senha
-router.post('/forgot-password', async (req, res) => {
-  try {
-    const response = await fetch(`${AUTH_SERVICE_URL}/auth/forgot-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(req.body)
-    });
-    const data = await response.json();
-    res.status(response.status).json(data);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erro de comunicação com Auth Service' });
-  }
-});
-
-// Proxy para Reset de Senha
-router.post('/reset-password', async (req, res) => {
-  try {
-    const response = await fetch(`${AUTH_SERVICE_URL}/auth/reset-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(req.body)
-    });
-    const data = await response.json();
-    res.status(response.status).json(data);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erro de comunicação com Auth Service' });
-  }
-});
-
-import { AuthRequest } from '../middleware/authMiddleware';
+import { Router, Request, Response } from 'express';
+import { AuthRequest, makeAuthenticate } from '../middleware/authMiddleware';
+import type { Pool } from 'mysql2/promise';
+import { requireRole } from '../middleware/requireRole';
+import { HttpError } from '../http';
 import { audit } from '../audit/auditClient';
-import { AUTH_LOGOUT } from '../audit/actions';
 
-// Logout (Apenas para auditoria)
-router.post('/logout', authenticateToken, (req: AuthRequest, res) => {
-  audit({
-    usuario_id: req.user?.id ?? null,
-    acao: AUTH_LOGOUT,
-    resultado: 'sucesso',
-    ip: req.ip || req.socket?.remoteAddress,
-    recurso: 'POST /api/auth/logout'
+export function authRouter(db: Pool, emit: typeof audit = audit) {
+  const router = Router();
+  const proxy = (path: (req: Request) => string, timeoutMs = 5000) => async (req: Request, res: Response) => {
+    const base = process.env.AUTH_SERVICE_URL || 'http://auth-service:3000';
+    try {
+      const upstream = await fetch(`${base}/auth${path(req)}`, {
+        method: req.method, headers: { 'Content-Type': 'application/json', ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}) },
+        ...(req.method !== 'GET' ? { body: JSON.stringify(req.body) } : {}), signal: AbortSignal.timeout(timeoutMs)
+      });
+      const data = await upstream.json() as { code?: string; error?: string; message?: string };
+      if (!upstream.ok) res.status(upstream.status).json({ code: data.code || 'AUTH_ERROR', message: data.error || data.message || 'Operação não permitida.', error: data.error || data.message, requestId: res.locals.requestId });
+      else res.status(upstream.status).json(data);
+    } catch { throw new HttpError(503, 'AUTH_UNAVAILABLE', 'Serviço de autenticação indisponível.'); }
+  };
+  for (const endpoint of ['register', 'login', 'forgot-password', 'reset-password']) router.post(`/auth/${endpoint}`, proxy(() => `/${endpoint}`, endpoint === 'forgot-password' ? 15000 : 5000));
+  router.get('/auth/verify', proxy(() => '/verify'));
+  router.get('/admin/usuarios', makeAuthenticate(db), requireRole('admin'), proxy(req => `/admin/usuarios?page=${encodeURIComponent(String(req.query.page ?? 1))}&limit=${encodeURIComponent(String(req.query.limit ?? 20))}`));
+  router.patch('/admin/usuarios/:id/papel', makeAuthenticate(db), requireRole('admin'), proxy(req => `/admin/usuarios/${encodeURIComponent(String(req.params.id))}/papel`));
+  router.post('/auth/logout', makeAuthenticate(db), (req: AuthRequest, res) => {
+    emit({ usuario_id: req.user!.id, acao: 'auth.logout', resultado: 'sucesso' });
+    res.json({ message: 'Sessão encerrada neste navegador.' });
   });
-  res.status(200).json({ message: 'Logout registrado com sucesso' });
-});
-
-export default router;
+  return router;
+}

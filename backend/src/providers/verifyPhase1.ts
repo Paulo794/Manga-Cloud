@@ -1,4 +1,5 @@
 import assert from 'assert';
+import { createHash } from 'crypto';
 import {
   assertValidProvider,
   canonicalizeChapters,
@@ -263,6 +264,7 @@ export async function runOfflineContractSuite(): Promise<void> {
 export async function runLiveMangadexIntegrationCheck(): Promise<{
   status: 'APROVADO' | 'PENDENTE';
   reason: string;
+  evidence?: { mangaId: string; chapterId: string; totalPages: number; imageBytes: number; imageSha256: string; imageFormat: string; pageOrigin: string };
 }> {
   console.log('\n=== [Fase 1 — Verificação de Integração Real MangaDex (Rede Ao Vivo)] ===');
   const liveDiag = await mangadexCatalogProvider.getDiagnostics();
@@ -303,7 +305,10 @@ export async function runLiveMangadexIntegrationCheck(): Promise<{
               console.log(
                 `[STATUS LEITURA REAL: APROVADO] Obra=${work.id} -> Capítulo=${firstReadable.id} -> Páginas=${manifest.totalPages} -> Imagem válida (${buffer.length} bytes)`
               );
-              return { status: 'APROVADO', reason: 'Fluxo completo e bytes da imagem validados ao vivo.' };
+              return { status: 'APROVADO', reason: 'Fluxo completo e bytes da imagem validados ao vivo.', evidence: {
+                mangaId: work.id, chapterId: firstReadable.id, totalPages: manifest.totalPages, imageBytes: buffer.length,
+                imageSha256: createHash('sha256').update(buffer).digest('hex'), imageFormat: isJpeg ? 'jpeg' : isPng ? 'png' : 'webp', pageOrigin: new URL(firstPageUrl).origin
+              } };
             }
           } finally {
             clearTimeout(timer);

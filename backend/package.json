@@ -7,24 +7,26 @@
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "db:migrate": "tsx src/migrations/migrate.ts",
-    "db:seed": "tsx src/migrations/seed.ts",
+    "db:migrate": "node scripts/db-command.cjs migrate",
+    "db:seed": "node scripts/db-command.cjs seed",
     "verify:phase1": "tsx src/providers/verifyPhase1.ts",
-    "verify:phase2db": "tsx src/migrations/verifyPhase2Db.ts"
+    "verify:phase2db": "tsx src/migrations/verifyPhase2Db.ts",
+    "docs:generate": "node scripts/generate-openapi.cjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1166.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "minio": "^8.0.7",
     "multer": "^2.4.0",
     "mysql2": "^3.23.4",
+    "sharp": "^0.35.5",
     "stripe": "^23.0.0",
     "swagger-ui-express": "^5.0.1",
     "yamljs": "^0.3.0"
@@ -38,8 +40,6 @@
     "@types/node": "^26.2.0",
     "@types/swagger-ui-express": "^4.1.8",
     "@types/yamljs": "^0.2.34",
-    "nodemon": "^3.1.14",
-    "ts-node": "^10.9.2",
     "tsx": "^4.23.12",
     "typescript": "^7.0.2"
   }

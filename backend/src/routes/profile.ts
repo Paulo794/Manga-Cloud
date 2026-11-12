@@ -1,120 +1,48 @@
 import { Router } from 'express';
+import type { Pool, RowDataPacket } from 'mysql2/promise';
 import multer from 'multer';
-import { authenticateToken, AuthRequest } from '../middleware/authMiddleware';
-import pool from '../db';
-import { minioClient, BUCKET_NAME } from '../config/minio';
-import crypto from 'crypto';
+import { pipeline } from 'stream';
+import { AuthRequest, makeAuthenticate } from '../middleware/authMiddleware';
+import { HttpError, text, missing } from '../http';
+import { currentSubscription } from '../services/library';
+import { ObjectStore, AVATARS_BUCKET, validateImage, limitUploads, queueRemoval, compensateObject } from '../services/storage';
 
-const router = Router();
-
-// Configuração do multer em memória
-const upload = multer({ 
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // limite de 5MB
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Apenas imagens são permitidas.'));
-    }
-  }
-});
-
-// Busca o perfil do usuário logado
-router.get('/', authenticateToken, async (req: AuthRequest, res) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ error: 'Não autorizado' });
-
-    // Busca o usuário
-    const [userRows]: any = await pool.query(
-      'SELECT id, nome, email, bio, avatar_url, is_premium FROM usuarios WHERE id = ?',
-      [userId]
-    );
-
-    if (userRows.length === 0) {
-      return res.status(404).json({ error: 'Usuário não encontrado' });
-    }
-
-    const user = userRows[0];
-
-    // Busca os filmes favoritos deste usuário
-    const [favoritesRows] = await pool.query(
-      'SELECT tmdb_movie_id, titulo, poster_path FROM favoritos WHERE usuario_id = ?',
-      [userId]
-    );
-
-    res.json({
-      ...user,
-      favoritos: favoritesRows || []
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erro ao buscar perfil' });
-  }
-});
-
-// Atualiza a bio do usuário (e garante que é ele mesmo editando pelo token)
-router.put('/', authenticateToken, async (req: AuthRequest, res) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ error: 'Não autorizado' });
-
-    const { bio, id } = req.body;
-    
-    // Validação explícita para o professor ver a recusa na tentativa de fraude
-    if (id && String(id) !== String(userId)) {
-      return res.status(403).json({ error: 'Acesso Negado: Você não pode editar o perfil de outro usuário.' });
-    }
-    
-    // Atualiza apenas a bio e usa o ID do token, impedindo manipulação de ID
-    await pool.query('UPDATE usuarios SET bio = ? WHERE id = ?', [bio, userId]);
-    
-    res.json({ message: 'Perfil atualizado com sucesso' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erro ao atualizar perfil' });
-  }
-});
-
-// Faz o upload da foto de perfil para o MinIO
-router.post('/avatar', authenticateToken, upload.single('file'), async (req: AuthRequest, res) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ error: 'Não autorizado' });
-
-    const file = req.file;
-    if (!file) {
-      return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
-    }
-
-    // Gera um nome único para o arquivo
-    const extension = file.originalname.split('.').pop();
-    const objectName = `user_${userId}_${crypto.randomBytes(4).toString('hex')}.${extension}`;
-
-    // Envia o buffer para o MinIO
-    await minioClient.putObject(
-      BUCKET_NAME,
-      objectName,
-      file.buffer,
-      file.size,
-      { 'Content-Type': file.mimetype }
-    );
-
-    // O MinIO está configurado em localhost:9005 (host) para acesso público
-    const avatarUrl = `http://localhost:9005/${BUCKET_NAME}/${objectName}`;
-
-    // Atualiza no banco de dados
-    await pool.query('UPDATE usuarios SET avatar_url = ? WHERE id = ?', [avatarUrl, userId]);
-
-    res.json({ 
-      message: 'Foto atualizada com sucesso',
-      avatar_url: avatarUrl 
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erro no upload da foto' });
-  }
-});
-
-export default router;
+export function profileRouter(db: Pool, store: ObjectStore) {
+  const router = Router();
+  router.use(makeAuthenticate(db));
+  router.get('/', async (req: AuthRequest, res) => {
+    const [rows] = await db.query<RowDataPacket[]>('SELECT id, nome, email, bio, role, avatar_url FROM usuarios WHERE id=?', [req.user!.id]);
+    if (!rows[0]) throw missing();
+    res.json({ ...rows[0], avatar_url: rows[0].avatar_url?.startsWith('avatars/') ? '/api/profile/avatar' : null, assinatura: await currentSubscription(db, req.user!.id) });
+  });
+  router.put('/', async (req: AuthRequest, res) => {
+    if (req.body?.id !== undefined && Number(req.body.id) !== req.user!.id) throw new HttpError(403, 'FORBIDDEN', 'Você só pode editar seu perfil.');
+    const bio = text(req.body?.bio, 1000);
+    await db.query('UPDATE usuarios SET bio=? WHERE id=?', [bio, req.user!.id]);
+    res.json({ message: 'Perfil atualizado.' });
+  });
+  const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 0 } });
+  router.post('/avatar', limitUploads, upload.single('file'), async (req: AuthRequest, res) => {
+    const image = await validateImage(req.file), key = `avatars/${image.key}`;
+    await store.put(AVATARS_BUCKET, key, image.data, image.mime);
+    const conn = await db.getConnection().catch(async error => { await compensateObject(db, store, AVATARS_BUCKET, key); throw error; });
+    try {
+      await conn.beginTransaction();
+      const [rows] = await conn.query<RowDataPacket[]>('SELECT avatar_url FROM usuarios WHERE id=? FOR UPDATE', [req.user!.id]);
+      if (!rows[0]) throw missing();
+      if (rows[0].avatar_url?.startsWith('avatars/')) await queueRemoval(conn, AVATARS_BUCKET, rows[0].avatar_url, 'avatar_substituido');
+      await conn.query('UPDATE usuarios SET avatar_url=? WHERE id=?', [key, req.user!.id]);
+      await conn.commit();
+    } catch (error) { await conn.rollback(); await compensateObject(db, store, AVATARS_BUCKET, key); throw error; }
+    finally { conn.release(); }
+    res.status(201).json({ avatar_url: '/api/profile/avatar' });
+  });
+  router.get('/avatar', async (req: AuthRequest, res, next) => {
+    const [rows] = await db.query<RowDataPacket[]>('SELECT avatar_url FROM usuarios WHERE id=?', [req.user!.id]);
+    if (!rows[0]?.avatar_url?.startsWith('avatars/')) throw missing();
+    const stream = await store.get(AVATARS_BUCKET, rows[0].avatar_url);
+    res.set({ 'Content-Type': 'image/webp', 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' });
+    pipeline(stream, res, error => { if (error) next(error); });
+  });
+  return router;
+}
