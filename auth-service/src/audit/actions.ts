@@ -1,7 +1,9 @@
 export const AUTH_LOGIN = 'auth.login';
+export const AUTH_FALHA = 'auth.falha';
 export const AUTH_LOGOUT = 'auth.logout';
 export const AUTH_REGISTRO = 'auth.registro';
 export const AUTH_SENHA_REDEFINIDA = 'auth.senha.redefinida';
+export const USUARIO_PAPEL_ALTERADO = 'usuario.papel_alterado';
 export const FAVORITO_CRIADO = 'favorito.criado';
 export const FAVORITO_REMOVIDO = 'favorito.removido';
 export const COMENTARIO_CRIADO = 'comentario.criado';

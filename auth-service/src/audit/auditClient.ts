@@ -26,7 +26,7 @@ export function audit(evento: Omit<AuditEvent, 'servico'>): void {
       },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(1500)
-    }).catch(err => {
+    }).then(response => { if (!response.ok) throw new Error(`HTTP ${response.status}`); }).catch(err => {
       console.warn(`[Audit] Falha ao enviar evento ${evento.acao}: ${err.message}`);
     });
   } catch (err: any) {

@@ -1,15 +1,17 @@
 import { Router } from 'express';
-import { register, login, forgotPassword, resetPassword, verify } from '../controllers/authController';
+import { createAuthHandlers, AuthDbAdapter } from '../controllers/authController';
 import { verifyToken } from '../middlewares/authMiddleware';
+import { audit } from '../audit/auditClient';
 
-const router = Router();
-
-router.post('/register', register);
-router.post('/login', login);
-router.post('/forgot-password', forgotPassword);
-router.post('/reset-password', resetPassword);
-
-// Rota protegida usada pelo Catálogo para checar se o token é válido
-router.get('/verify', verifyToken, verify);
-
-export default router;
+export function createAuthRouter(db?: AuthDbAdapter, emit?: typeof audit) {
+  const router = Router(), handlers = createAuthHandlers(db, emit);
+  router.post('/register', handlers.register);
+  router.post('/login', handlers.login);
+  router.post('/forgot-password', handlers.forgotPassword);
+  router.post('/reset-password', handlers.resetPassword);
+  router.get('/verify', verifyToken, handlers.verify);
+  router.get('/admin/usuarios', verifyToken, handlers.listUsers);
+  router.patch('/admin/usuarios/:id/papel', verifyToken, handlers.changeRole);
+  return router;
+}
+export default createAuthRouter();

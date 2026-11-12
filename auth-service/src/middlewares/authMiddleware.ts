@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 
 // Interface customizada para manter o TypeScript 100% seguro (sem usar 'any')
 export interface AuthRequest extends Request {
@@ -19,7 +18,8 @@ export const verifyToken = (req: AuthRequest, res: Response, next: NextFunction)
   const token = authHeader.split(' ')[1];
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    if (!process.env.JWT_SECRET) { res.status(503).json({ error: 'Autenticação não configurada.' }); return; }
+    const decoded = jwt.verify(token!, process.env.JWT_SECRET, { algorithms: ['HS256'] });
     // Agora o TypeScript sabe que req tem a propriedade user
     req.user = decoded;
     next();

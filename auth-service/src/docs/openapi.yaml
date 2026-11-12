@@ -1,81 +1,179 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
-  title: Auth Service API
-  version: 1.0.0
-  description: Serviço de Autenticação do Catálogo Tom Hanks.
+  title: 'MangaCloud Auth API'
+  version: 2.0.0
+  description: 'Estantes privadas, catálogo e leitura. MangaDex real não possui paywall comercial; assinatura de teste aplica-se ao Demo. Papel e plano são independentes.'
 servers:
-  - url: http://localhost:3000
-    description: Auth Service Local
+  -
+    url: /auth
+security:
+  -
+    BearerAuth: []
 components:
   securitySchemes:
-    bearerAuth:
+    BearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
   schemas:
-    ErroPadrao:
+    Error:
       type: object
       properties:
-        error:
+        code:
           type: string
-          example: "Credenciais inválidas"
-    Usuario:
+        message:
+          type: string
+        requestId:
+          type: string
+    Shelf:
       type: object
       properties:
         id:
           type: integer
         nome:
           type: string
-        email:
+          maxLength: 100
+        descricao:
           type: string
-        role:
+          maxLength: 1000
+          nullable: true
+        totalItens:
+          type: integer
+        possuiCapa:
+          type: boolean
+    Subscription:
+      type: object
+      properties:
+        plano:
           type: string
-          example: "usuario"
+          enum:
+            - free
+            - pro
+        isPro:
+          type: boolean
+        status:
+          type: string
+        acessoAte:
+          type: string
+          format: date-time
+          nullable: true
+        cancelAtPeriodEnd:
+          type: boolean
+        canManageRenewal:
+          type: boolean
+    Manifest:
+      type: object
+      properties:
+        provider:
+          type: string
+          enum:
+            - demo
+            - mangadex
+        chapterId:
+          type: string
+        mangaId:
+          type: string
+        title:
+          type: string
+        language:
+          type: string
+        totalPages:
+          type: integer
+        pages:
+          type: array
+          items:
+            type: object
+            properties:
+              pageNumber:
+                type: integer
+              imageUrl:
+                type: string
 paths:
-  /auth/login:
+  /register:
     post:
-      summary: Login de usuário
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [email, senha]
-              properties:
-                email:
-                  type: string
-                  format: email
-                senha:
-                  type: string
+      summary: 'Criar conta sempre como leitor'
+      parameters: []
       responses:
-        '200':
-          description: Login com sucesso
+        '201':
+          description: 'Operação concluída.'
           content:
             application/json:
               schema:
                 type: object
-                properties:
-                  token:
-                    type: string
-                  user:
-                    $ref: '#/components/schemas/Usuario'
-        '401':
-          description: Credenciais inválidas
+                additionalProperties: true
+        '400':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErroPadrao'
-  /auth/register:
-    post:
-      summary: Registro de novo usuário
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '504':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [nome, email, senha]
               properties:
                 nome:
                   type: string
@@ -84,107 +182,546 @@ paths:
                   format: email
                 senha:
                   type: string
-      responses:
-        '201':
-          description: Usuário cadastrado com sucesso
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Usuário cadastrado com sucesso"
-        '400':
-          description: Email já cadastrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErroPadrao'
-  /auth/verify:
-    get:
-      summary: Verifica se o token JWT é válido
-      security:
-        - bearerAuth: []
+                  minLength: 6
+                  maxLength: 72
+              required:
+                - nome
+                - email
+                - senha
+  /login:
+    post:
+      summary: 'Entrar e obter JWT'
+      parameters: []
       responses:
         '200':
-          description: Token válido
+          description: 'Operação concluída.'
           content:
             application/json:
               schema:
                 type: object
-                properties:
-                  valid:
-                    type: boolean
-                    example: true
-                  user:
-                    $ref: '#/components/schemas/Usuario'
+                additionalProperties: true
+        '400':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
-          description: Acesso negado, sem token
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErroPadrao'
+                $ref: '#/components/schemas/Error'
         '403':
-          description: Token inválido ou expirado
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErroPadrao'
-  /auth/forgot-password:
-    post:
-      summary: Solicita redefinição de senha
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '504':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [email]
               properties:
                 email:
                   type: string
-                  format: email
+                senha:
+                  type: string
+              required:
+                - email
+                - senha
+  /verify:
+    get:
+      summary: 'Verificar sessão e papel atual'
+      parameters: []
       responses:
         '200':
-          description: Link de reset enviado
+          description: 'Operação concluída.'
           content:
             application/json:
               schema:
                 type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Se o email existir, um link foi enviado."
-  /auth/reset-password:
+                additionalProperties: true
+        '400':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '504':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /forgot-password:
     post:
-      summary: Redefine a senha com token
+      summary: 'Solicitar recuperação de senha'
+      parameters: []
+      responses:
+        '200':
+          description: 'Operação concluída.'
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '504':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [token, novaSenha]
+              properties:
+                email:
+                  type: string
+  /reset-password:
+    post:
+      summary: 'Consumir token de recuperação uma única vez'
+      parameters: []
+      responses:
+        '200':
+          description: 'Operação concluída.'
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '504':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
               properties:
                 token:
                   type: string
                 novaSenha:
                   type: string
+  /admin/usuarios:
+    get:
+      summary: 'Admin: usuários sem dados privados de biblioteca ou hashes'
+      parameters:
+        -
+          name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        -
+          name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
       responses:
         '200':
-          description: Senha atualizada com sucesso
+          description: 'Operação concluída.'
           content:
             application/json:
               schema:
                 type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Senha atualizada com sucesso"
+                additionalProperties: true
         '400':
-          description: Token inválido ou expirado
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErroPadrao'
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '504':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/admin/usuarios/{id}/papel':
+    patch:
+      summary: 'Admin: mudar papel com revalidação no auth-service'
+      parameters:
+        -
+          name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'Operação concluída.'
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '504':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                papel:
+                  type: string
+                  enum:
+                    - leitor
+                    - curador
+                    - admin

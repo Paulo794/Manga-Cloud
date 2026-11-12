@@ -1,15 +1,19 @@
-FROM node:20-alpine
+FROM node:22-alpine AS builder
+ARG NPM_CONFIG_FETCH_RETRIES=2
+ARG NPM_CONFIG_FETCH_TIMEOUT=300000
 WORKDIR /app
-
 COPY package*.json ./
-RUN npm install
-
+RUN npm ci --no-audit
 COPY . .
-
-# Faz o build do TypeScript transformando em JavaScript
-RUN npm run build
-
+RUN npm run build && mkdir -p dist/docs && cp src/docs/openapi.yaml dist/docs/openapi.yaml
+FROM node:22-alpine
+ARG NPM_CONFIG_FETCH_RETRIES=2
+ARG NPM_CONFIG_FETCH_TIMEOUT=300000
+ENV NODE_ENV=production
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --omit=dev --no-audit && npm cache clean --force
+COPY --from=builder /app/dist ./dist
+USER node
 EXPOSE 3000
-
-# Executa o build compilado em produção (JavaScript puro), mais leve e rápido!
-CMD ["npm", "start"]
+CMD ["node", "dist/server.js"]
