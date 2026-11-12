@@ -1,5 +1,7 @@
 # 📚 MangaCloud — Biblioteca Pessoal e Leitor Web de Mangás e HQs
 
+**Para retomar o desenvolvimento:** [roteiro da última sessão](docs/ROTEIRO_CONTINUIDADE_MANGACLOUD.md), com decisões, resultados e pendências atuais. Publicação/Portainer ficam para a última etapa por decisão do usuário.
+
 **MangaCloud permite que leitores descubram obras, organizem estantes pessoais com capas personalizadas e leiam capítulos em um leitor web limpo com progresso sincronizado.**
 
 Desenvolvido para a disciplina de Introdução à Computação em Nuvem (ISW055), lecionada pelo professor **[@siriani](https://github.com/siriani)** ([github.com/siriani](https://github.com/siriani)).
@@ -53,31 +55,33 @@ Desenvolvido para a disciplina de Introdução à Computação em Nuvem (ISW055)
 
 ## 6. Modelo de Receita com Stripe
 
-*(Modelo comercial proposto como hipótese de negócio da disciplina; a execução atual opera o Stripe exclusivamente em **modo de teste**, utilizando conteúdo sintético/demonstrativo autorizado para validação do paywall, enquanto a contratação/licenciamento de fonte comercial para produção permanece como etapa de negócio separada).*
+*(Modelo comercial proposto como hipótese de negócio da disciplina; a integração aceita somente Stripe em **modo de teste**, habilitado explicitamente por configuração, utilizando conteúdo sintético/demonstrativo autorizado para validação do paywall, enquanto a contratação/licenciamento de fonte comercial para produção permanece como etapa de negócio separada).*
 
 A monetização do SaaS ocorre por **assinatura mensal recorrente via Stripe Checkout + Webhooks**, dividindo a experiência do papel `leitor` em dois planos:
 
-| Recurso | Plano Leitor Free (R$ 0/mês) | Plano Leitor Pro — R$ 19,90/mês *(hipótese de preço)* |
+| Recurso | Plano Leitor Free (R$ 0/mês) | Plano Leitor Pro — R$ 9,90/mês *(hipótese de preço)* |
 | ------- | ---------------------------- | ----------------------------------------------------- |
 | **Navegação no catálogo, busca, filtros por gênero/tags e sinopse** | ✅ Ilimitado | ✅ Ilimitado |
 | **Criação de estantes pessoais (CRUD completo) + upload de capa personalizada (MinIO)** | ✅ Incluso | ✅ Incluso |
 | **Marcação de favoritos e visualização da lista de capítulos** | ✅ Incluso | ✅ Incluso |
-| **Acesso ao Web Reader (leitura de páginas dos capítulos)** | 🔒 **Até os 3 primeiros capítulos canônicos por obra/idioma** | 🌟 **Acesso completo aos capítulos disponíveis e autorizados na fonte** |
+| **Acesso ao Web Reader (leitura de páginas dos capítulos)** | 🔒 **No Demo: até as 3 primeiras posições canônicas por obra/idioma** | 🌟 **Acesso completo aos capítulos do Demo** |
 | **Salvamento automático e sincronização de progresso (capítulo + página exata)** | ❌ Não incluso | 🌟 **Sincronização automática de página entre dispositivos** |
 
-- **O que o Plano Free limita:** Permite explorar todo o catálogo, organizar estantes pessoais com capas próprias, favoritar obras e experimentar o leitor nos **3 capítulos iniciais canônicos** de cada obra/idioma. Ao tentar abrir o 4º capítulo em diante, o backend bloqueia a entrega do manifesto de páginas (`403 PLAN_REQUIRED`) e apresenta o convite de assinatura.
-- **Por que o leitor pagaria o Plano Pro (hipótese de R$ 19,90/mês):** Leitores assíduos acompanham obras longas (dezenas ou centenas de capítulos) em mais de um dispositivo e valorizam continuar qualquer série além do 3º capítulo sem interrupções, com retomada automática na página exata em que pararam.
+**Leitura real:** o catálogo MangaDex não recebe esse paywall. Todos os capítulos disponíveis e permitidos na fonte podem ser lidos após autenticação, sem assinatura. O comparativo de desbloqueio abaixo refere-se somente às fixtures Demo.
+
+- **O que o Plano Free limita (Demo):** Permite explorar todo o catálogo, organizar estantes pessoais com capas próprias, favoritar obras e experimentar o leitor nas **3 primeiras posições canônicas** de cada obra/idioma do Demo. Ao tentar abrir o 4º capítulo em diante, o backend bloqueia a entrega do manifesto de páginas (`403 PLAN_REQUIRED`) e apresenta o convite de assinatura.
+- **Por que o leitor pagaria o Plano Pro (hipótese de R$ 9,90/mês):** Leitores assíduos acompanham obras longas (dezenas ou centenas de capítulos) em mais de um dispositivo e valorizam continuar qualquer série além do 3º capítulo sem interrupções, com retomada automática na página exata em que pararam.
 
 ---
 
 ## 7. Métricas de Sucesso
 
-O acompanhamento da saúde do produto baseia-se em 5 indicadores operacionais e financeiros (sem projeções fictícias; apurados a partir dos eventos reais do sistema):
+O acompanhamento proposto usa os cinco indicadores abaixo. Não há resultado comercial medido; transações simuladas ou de teste não representam receita real:
 
 1. **Ativação de Biblioteca:** Proporção de novos usuários cadastrados (`leitor`) que criam pelo menos 1 estante pessoal ou adicionam sua primeira obra favorita e abrem ao menos 1 capítulo no leitor.
 2. **Taxa de Conversão no Paywall (Free → Pro):** Percentual de leitores que atingem o bloqueio do 4º capítulo (`leitura.bloqueada`) e concluem a assinatura no Stripe Checkout (`assinatura.atualizada`).
 3. **Assinantes Pro Ativos:** Total de usuários com assinatura vigente e período de acesso válido confirmado via webhook do Stripe.
-4. **MRR (*Monthly Recurring Revenue*):** Receita recorrente mensal calculada pelo número de assinaturas Pro ativas × valor mensal do plano (R$ 19,90 na hipótese base).
+4. **MRR (*Monthly Recurring Revenue*):** Receita recorrente mensal calculada pelo número de assinaturas Pro ativas × valor mensal do plano (R$ 9,90 na hipótese base).
 5. **Retenção Mensal e Engajamento de Leitura:** Proporção de assinantes que renovam a assinatura no ciclo seguinte e frequência semanal de atualização de progresso (`progresso.atualizado`).
 
 ---
@@ -91,10 +95,10 @@ O acompanhamento da saúde do produto baseia-se em 5 indicadores operacionais e 
 | **3. Proposta Única de Valor** | Descubra obras, organize estantes pessoais com capas próprias e leia em um Web Reader limpo que lembra exatamente a página onde você parou. |
 | **4. Solução** | 1. **Estantes Pessoais com Capas (CRUD + MinIO):** Organização privada de obras com upload de capa personalizada.<br>2. **Web Reader com Gatekeeper no Servidor:** Leitura fluida dos 3 capítulos iniciais no Free e desbloqueio completo no Pro validado no backend.<br>3. **Progresso Sincronizado por Página:** Gravação automática e versionada do capítulo e página atual para assinantes Pro. |
 | **5. Canais** | Comunidades de leitores de mangás/quadrinhos no Discord e Reddit, perfis de recomendações no TikTok/Instagram e compartilhamento direto por usuários da plataforma. |
-| **6. Fontes de Receita** | Assinatura mensal **MangaCloud Pro** via **Stripe** (hipótese de **R$ 19,90/mês** para leitura completa de capítulos autorizados e sincronização automática de página; plano Free gratuito com estantes e até 3 capítulos iniciais por obra). |
+| **6. Fontes de Receita** | Assinatura mensal **MangaCloud Pro** via **Stripe** (hipótese de **R$ 9,90/mês** para leitura completa de capítulos autorizados e sincronização automática de página; plano Free gratuito com estantes e até 3 capítulos iniciais por obra). |
 | **7. Estrutura de Custos** | Infraestrutura em nuvem (VM Proxmox + Docker Compose com Node.js/TypeScript, MariaDB, Redis e MinIO), armazenamento de objetos (avatares e capas), taxas de transação do Stripe e eventual licenciamento comercial de conteúdo. |
 | **8. Métricas-Chave** | Cadastros totais, taxa de ativação (1ª estante/leitura), bloqueios de paywall vs. conversões, total de assinantes Pro ativos, **MRR** e taxa de retenção/cancelamento (*churn*). |
-| **9. Vantagem Injusta** | Experiência unificada que combina curadoria de estantes privadas customizáveis com retomada exata de página e arquitetura de adaptadores desacoplados (permitindo plugar fontes licenciadas sem reescrever a biblioteca pessoal dos usuários). |
+| **9. Vantagem Injusta** | Ainda não validada. Acesso a leitores da comunidade acadêmica para feedback é uma hipótese a explorar; arquitetura e API pública, por si só, são copiáveis. |
 
 ---
 
@@ -104,7 +108,7 @@ Toda a infraestrutura construída ao longo da disciplina (**mesma stack no Porta
 
 | Peça do Projeto Atual | O que vira no SaaS | No MangaCloud |
 | --------------------- | ------------------ | ------------- |
-| **Catálogo de filmes (TMDB)** | Recurso de descoberta e leitura sob demanda | **Adaptador de Catálogo e Leitura (`providers`):** busca paginada de obras, tags/gêneros, detalhes, lista de capítulos por idioma e manifesto de páginas autorizado no backend (sem armazenar capítulos no banco nem no MinIO). |
+| **Catálogo externo anterior** | Recurso de descoberta e leitura sob demanda | **Adaptador de Catálogo e Leitura (`providers`):** busca paginada de obras, tags/gêneros, detalhes, lista de capítulos por idioma e manifesto de páginas autorizado no backend (sem armazenar capítulos no banco nem no MinIO). |
 | **Favoritos e Comentários** | Recurso principal do domínio (CRUD + Isolamento) | **Estantes Pessoais (`estantes`, `estante_itens`), Favoritos (`favoritos_manga`) e Progresso (`progresso_leitura`):** CRUD completo das próprias estantes com isolamento estrito por `usuario_id`. |
 | **Microsserviço de login (`auth-service`) + RBAC** | Autenticação JWT e 3 papéis do negócio | **Papéis `leitor`, `curador` e `admin`:** cadastro público gera `leitor`; `curador` acessa diagnóstico de integração/cobertura do provedor; `admin` gerencia papéis e auditoria (separados do plano `Free`/`Pro`). |
 | **Logs e auditoria (`log-service` + Redis)** | Eventos de negócio e trilha de segurança | Eventos estruturados: `estante.criada`, `estante.editada`, `estante.excluida`, `estante.item_adicionado`, `estante.item_removido`, `estante.capa_enviada`, `estante.capa_removida`, `favorito.adicionado`, `favorito.removido`, `leitura.liberada`, `leitura.bloqueada`, `progresso.atualizado`, `assinatura.atualizada` e `usuario.papel_alterado`. |
@@ -135,5 +139,64 @@ flowchart LR
 
 ### Modo Demonstrativo e Restrições de Provedor Externo
 
-- **Gatekeeper Server-Side:** O frontend nunca decide se um capítulo pode ser lido. Toda requisição de leitura passa pelo serviço central de autorização no backend, que verifica a sessão JWT, o vínculo do capítulo, a posição canônica (capítulos `1` a `3` liberados no plano Free) e a assinatura vigente no banco antes de retornar o manifesto de páginas. Em caso de bloqueio (`403 PLAN_REQUIRED`), nenhuma URL ou hash de imagem é trafegado na resposta.
+- **Gatekeeper Server-Side:** O frontend nunca decide se um capítulo pode ser lido. Toda requisição de leitura passa pelo serviço central de autorização no backend, que verifica a sessão JWT, o vínculo do capítulo, a posição canônica no Demo (as três primeiras posições liberadas no Free; `1, 2, 2.5` são distintas) e, quando necessário, a assinatura vigente no banco antes de retornar o manifesto de páginas. Em caso de bloqueio (`403 PLAN_REQUIRED`), nenhuma URL ou hash de imagem é trafegado na resposta.
 - **Conformidade com Termos de API Externa:** A documentação pública do MangaDex restringe a venda direta de acesso aos dados fornecidos pela sua API. Por isso, a arquitetura do MangaCloud desacopla o provedor por meio de adaptadores (`CATALOG_PROVIDER`) e executa a demonstração do paywall e do ciclo de assinatura Stripe (em modo de teste) sobre **fixtures determinísticas de conteúdo sintético/demonstrativo autorizado**, mantendo qualquer integração técnica com API pública separada de cobrança comercial enquanto uma fonte licenciada não for contratada.
+
+
+## 11. Execução e estado da entrega
+
+**Endereço local configurado:** `http://localhost:8224`. O endereço público existente deve ser informado após confirmação/redeploy na mesma stack; esta alteração não afirma implantação pública.
+
+A aplicação implementa landing, cadastro/login, estantes/itens, capas privadas, favoritos, catálogo por fonte, leitor paginado, histórico Pro, perfil/avatar, curadoria, administração e auditoria. Dados externos não viram catálogo no banco. Capas MangaDex são entregues pelo backend com cache temporário em memória; catálogo desktop/mobile, obra, estante e leitura real passaram no Chrome com DNS temporário de QA em 12/11 ([evidências](docs/QA_CAPAS_MANGADEX.md)). Pro é calculado por assinatura vigente, nunca pelo booleano legado.
+
+Checkout/pagamento/webhook externo em Stripe teste, Pro/retomada e gestão da renovação pela interface foram aprovados em 12/11. O cancelamento agenda o fim do período pago; a biblioteca e o histórico são preservados. A nova migration `004_identidade_cobranca.sql` cria uma identidade estável de cobrança por conta e foi aplicada somente no banco descartável de QA. [Resultados e limites da assinatura](docs/QA_ASSINATURA_MANGACLOUD.md).
+
+A [revisão final local](docs/QA_REVISAO_FINAL_MANGACLOUD.md) comprovou esse percurso em uma única conta com leitura MangaDex, fim automático do período e renovação recusada via Test Clocks. O leitor foi corrigido para salvar ao sair e manter a posição no retry; listas com 101 registros foram verificadas. Imagens atualizadas foram construídas e verificadas com Node 22, sem redeploy.
+
+Estado da continuidade e pendências: [implementação](docs/STATUS_IMPLEMENTACAO_MANGACLOUD.md), [resultados de QA e prints locais](docs/QA_IMPLEMENTACAO_MANGACLOUD.md) e [rascunho da entrega pública](docs/ENTREGA_ATIVIDADE_10_RASCUNHO.md).
+
+### Preparação local
+
+**Para abrir e explorar no computador:** execute `npm start` na raiz (Node.js 22+ e Docker/Compose) e acesse http://localhost:8224. O ambiente usa banco, uploads e Redis locais próprios, sem ler o `.env` principal ou alterar a stack existente. `npm stop` preserva os dados. [Guia de execução, conta admin local e comandos](docs/EXECUCAO_LOCAL_MANGACLOUD.md).
+
+As imagens usam Node 22; a suíte local também foi executada com Node 24. Preserve as versões dos lockfiles ao instalar.
+
+1. Instale dependências com `npm ci` em `backend`, `frontend`, `auth-service` e `log-service`.
+2. Configure o ambiente conforme `.env.example`, preservando o `.env` existente. Escolha explicitamente um banco de desenvolvimento; não execute os comandos de migração no banco principal sem revisar o alvo.
+3. No ambiente de desenvolvimento escolhido: `npm --prefix backend run db:migrate` e `npm --prefix backend run db:seed`.
+4. Inicie os serviços configurados com `npm --prefix auth-service run dev`, `npm --prefix log-service run dev` e `npm --prefix backend run dev`. Para frontend com hot reload, use `npm --prefix frontend run dev`; para a interface servida pelo backend, faça `npm --prefix frontend run build`.
+5. O cadastro público cria leitor. Admin legado é preservado; provisionamento QA usa emails dedicados configurados no ambiente, sem trocar senha/papel de contas existentes. Segredos precisam permanecer estáveis entre execuções do seed para reconhecer as contas QA assinadas.
+
+### Testes reproduzíveis
+
+```bash
+node tests/qa/phase1-providers.review.cjs
+node tests/qa/phase2-seed.review.cjs
+node tests/qa/mangadex-covers.review.cjs
+python3 scripts/qa/run-phase2-mariadb.review.py
+python3 scripts/qa/run-phase2-mariadb.review.py --api
+python3 scripts/qa/run-phase2-mariadb.review.py --browser
+```
+
+Os executores criam instâncias exclusivas de QA, em portas aleatórias de loopback, usando imagens locais `mariadb:11.8`, `elestio/minio:latest` e `redis:7-alpine`. Removem somente os recursos que criaram. O teste de navegador requer Chrome local ou Chromium do Playwright. As suítes HTTP usam MariaDB, MinIO e Redis reais; Stripe e indisponibilidade da fonte externa são simulados explicitamente, sem cobranças ou alegação de leitura real aprovada.
+
+O modo opcional `python3 scripts/qa/run-phase2-mariadb.review.py --stripe-live` usa chave/preço de teste do `.env`, Chrome e Stripe CLI para criar/pagar checkout de teste e receber webhooks reais, conferindo Pro/retomada e gestão. Encerra a assinatura QA, remove seu cliente remoto e o listener ao terminar. Não altera o `.env` nem o banco principal. É uma execução com objetos externos de teste, além da suíte simulada padrão.
+
+Para repetir o percurso em uma conta com MangaDex e os ciclos de renovação: `python3 scripts/qa/run-phase2-mariadb.review.py --stripe-live --stripe-clocks --mangadex-live --public-dns`. O modo adicional cria/remove Test Clock próprio e usa resolução temporária apenas no QA.
+
+Para consultar a integração real separadamente: `npm --prefix backend run verify:phase1 -- --require-live`. Falta de conectividade mantém a prova de leitura **pendente** e o comando retorna falha, sem mudar para Demo.
+
+### Build, API e implantação
+
+- `npm run build` em cada um dos quatro serviços/projetos executa a compilação apropriada; o frontend inclui typecheck.
+- Swagger: `/api-docs`. Contratos regeneráveis com `npm --prefix backend run docs:generate`.
+- `/health`: liveness; `/ready`: conectividade/schema das estantes. Uploads usam buckets privados e são acessados via API autenticada.
+- `STRIPE_DEMO_ENABLED=false` por padrão. Para demonstração externa de pagamento, configurar preço e chaves **de teste**; nunca usar chaves live.
+- O Dockerfile executa JavaScript compilado. `npm run db:migrate` e `npm run db:seed` também funcionam na imagem em `NODE_ENV=production`, sem dependência de tsx global.
+- Antes do redeploy, backup e revisão do banco/variáveis, execução das migrations no alvo correto, preservação de volumes e confirmação do commit. Plano operacional em [operação MangaCloud](docs/OPERACAO_MANGACLOUD.md).
+
+### Limites atuais
+
+- O DNS normal da rede consultada limita o acesso ao MangaDex. A prova real com capas e páginas passou usando resolução temporária exclusiva de QA, que não altera o DNS da máquina nem resolve o acesso cotidiano dessa rede.
+- Não há fonte comercial licenciada definida. Preço Pro de R$ 9,90 é uma hipótese didática, não configuração aprovada de cobrança real.
+- Não foram publicados issue de entrega, prints do Portainer ou deploy público por esta implementação. Evidências locais não substituem essas exigências da Atividade 10.
