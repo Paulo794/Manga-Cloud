@@ -1,5 +1,4 @@
-version: '3.8'
-
+# Mesma stack, aliases, portas e volumes da implantação existente.
 services:
   catalogo:
     build:
@@ -7,98 +6,126 @@ services:
       dockerfile: Dockerfile
     container_name: catalogo_tom_hanks
     ports:
-      - "8224:3001" # Porta 8224 exposta para a rede da faculdade
-    networks:
-      - tom_hanks_net
+      - "8224:3001"
+    networks: [tom_hanks_net]
     environment:
-      - AUTH_SERVICE_URL=http://auth-service:3000
-      - LOG_SERVICE_URL=http://log-service:3002
-      - INTERNAL_SERVICE_TOKEN=${INTERNAL_SERVICE_TOKEN}
-      - PORT=${PORT}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
-      - TMDB_API_KEY=${TMDB_API_KEY}
-      - JWT_SECRET=${JWT_SECRET}
-      - MINIO_ENDPOINT=minio
-      - MINIO_PORT=9000
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
-      - STRIPE_PRICE_ID=${STRIPE_PRICE_ID}
-      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
-      - APP_URL=${APP_URL}
+      PORT: "3001"
+      AUTH_SERVICE_URL: http://auth-service:3000
+      LOG_SERVICE_URL: http://log-service:3002
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
+      JWT_SECRET: ${JWT_SECRET}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: "9000"
+      MINIO_REGION: ${MINIO_REGION:-us-east-1}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-adminpassword}
+      STRIPE_DEMO_ENABLED: ${STRIPE_DEMO_ENABLED:-false}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_PRICE_ID: ${STRIPE_PRICE_ID:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      APP_URL: ${APP_URL}
+      CATALOG_PROVIDER: ${CATALOG_PROVIDER:-mangadex}
+      QA_LEITOR_EMAIL: ${QA_LEITOR_EMAIL:-}
+      QA_LEITOR_PASSWORD: ${QA_LEITOR_PASSWORD:-}
+      QA_CURADOR_EMAIL: ${QA_CURADOR_EMAIL:-}
+      QA_CURADOR_PASSWORD: ${QA_CURADOR_PASSWORD:-}
+      QA_ADMIN_EMAIL: ${QA_ADMIN_EMAIL:-}
+      QA_ADMIN_PASSWORD: ${QA_ADMIN_PASSWORD:-}
     depends_on:
       auth-service:
         condition: service_healthy
+    mem_limit: 1g
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3001/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     restart: unless-stopped
 
   auth-service:
-    build:
-      context: ./auth-service
-      dockerfile: Dockerfile
+    build: ./auth-service
     container_name: auth_tom_hanks
-    # SEM PORTS - Acesso apenas interno
-    networks:
-      - tom_hanks_net
+    networks: [tom_hanks_net]
     environment:
-      - AUTH_PORT=3000
-      - LOG_SERVICE_URL=http://log-service:3002
-      - INTERNAL_SERVICE_TOKEN=${INTERNAL_SERVICE_TOKEN}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
-      - JWT_SECRET=${JWT_SECRET}
-      - MAILTRAP_HOST=${MAILTRAP_HOST}
-      - MAILTRAP_PORT=${MAILTRAP_PORT}
-      - MAILTRAP_USER=${MAILTRAP_USER}
-      - MAILTRAP_PASS=${MAILTRAP_PASS}
+      AUTH_PORT: "3000"
+      LOG_SERVICE_URL: http://log-service:3002
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      JWT_SECRET: ${JWT_SECRET}
+      APP_URL: ${APP_URL}
+      MAILTRAP_HOST: ${MAILTRAP_HOST:-}
+      MAILTRAP_PORT: ${MAILTRAP_PORT:-2525}
+      MAILTRAP_USER: ${MAILTRAP_USER:-}
+      MAILTRAP_PASS: ${MAILTRAP_PASS:-}
+      MAIL_FROM: ${MAIL_FROM:-MangaCloud <noreply@lapps.studio>}
+    mem_limit: 1g
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   log-service:
-    build:
-      context: ./log-service
-      dockerfile: Dockerfile
+    build: ./log-service
     container_name: log_tom_hanks
-    networks:
-      - tom_hanks_net
+    networks: [tom_hanks_net]
     environment:
-      - LOG_PORT=3002
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-      - AUDIT_STREAM_MAXLEN=${AUDIT_STREAM_MAXLEN}
-      - INTERNAL_SERVICE_TOKEN=${INTERNAL_SERVICE_TOKEN}
+      LOG_PORT: "3002"
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      AUDIT_STREAM_MAXLEN: ${AUDIT_STREAM_MAXLEN:-10000}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
     depends_on:
       redis:
         condition: service_healthy
+    mem_limit: 1g
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3002/health"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3002/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   redis:
     image: redis:7-alpine
     container_name: redis_tom_hanks
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
-    networks:
-      - tom_hanks_net
+    command: [redis-server, --appendonly, "yes", --requirepass, "${REDIS_PASSWORD}"]
+    networks: [tom_hanks_net]
     environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-    volumes:
-      - redis_data:/data
+      REDISCLI_AUTH: ${REDIS_PASSWORD}
+    volumes: [redis_data:/data]
+    mem_limit: 1g
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep -q PONG"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
+      test: [CMD, redis-cli, ping]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   minio:
@@ -106,22 +133,27 @@ services:
     container_name: minio_tom_hanks
     command: server /data --console-address ":9001"
     environment:
-      - MINIO_ROOT_USER=admin
-      - MINIO_ROOT_PASSWORD=adminpassword
-    ports:
-      - "9005:9000"
-      - "9006:9001"
-    networks:
-      - tom_hanks_net
-    volumes:
-      - minio_data:/data
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-adminpassword}
+    ports: ["9005:9000", "9006:9001"]
+    networks: [tom_hanks_net]
+    volumes: [minio_data:/data]
+    mem_limit: 1g
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    healthcheck:
+      test: [CMD, curl, -f, http://127.0.0.1:9000/minio/health/ready]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     restart: unless-stopped
-
 
 networks:
   tom_hanks_net:
     driver: bridge
-
 volumes:
   redis_data:
   minio_data:

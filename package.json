@@ -1,0 +1,16 @@
+{
+  "name": "mangacloud",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Comandos para abrir o ambiente local do MangaCloud",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node scripts/dev/local.cjs up",
+    "stop": "node scripts/dev/local.cjs stop",
+    "status": "node scripts/dev/local.cjs status",
+    "logs": "node scripts/dev/local.cjs logs",
+    "check:local": "node scripts/dev/local.cjs check"
+  }
+}

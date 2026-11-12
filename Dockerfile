@@ -1,31 +1,33 @@
-# Estágio de build do Frontend
-FROM node:20-alpine AS frontend-builder
+FROM node:22-alpine AS frontend-builder
+ARG NPM_CONFIG_FETCH_RETRIES=2
+ARG NPM_CONFIG_FETCH_TIMEOUT=300000
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
-RUN npm install
+RUN npm ci --no-audit
 COPY frontend ./
-# Executa o vite build diretamente (sem travar no tsc)
-RUN npx vite build
+RUN npm run build
 
-# Estágio do Backend & Produção
-FROM node:20-alpine
-WORKDIR /app
-
-# Dependências do backend
-COPY backend/package*.json ./backend/
-RUN cd backend && npm install
-
-# Código do backend e scripts SQL versionados (db/)
-COPY db ./db
-COPY backend ./backend
-
-# Instala tsx para rodar TypeScript diretamente
-RUN npm install -g tsx
-
-# Copia build estático do frontend
-COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
-
-EXPOSE 3001
-
+FROM node:22-alpine AS backend-builder
+ARG NPM_CONFIG_FETCH_RETRIES=2
+ARG NPM_CONFIG_FETCH_TIMEOUT=300000
 WORKDIR /app/backend
-CMD ["npx", "tsx", "src/server.ts"]
+COPY backend/package*.json ./
+RUN npm ci --no-audit
+COPY backend/src ./src
+COPY backend/tsconfig.json ./tsconfig.json
+RUN npm run build && mkdir -p dist/docs && cp src/docs/openapi.yaml dist/docs/openapi.yaml
+
+FROM node:22-alpine
+ARG NPM_CONFIG_FETCH_RETRIES=2
+ARG NPM_CONFIG_FETCH_TIMEOUT=300000
+ENV NODE_ENV=production
+WORKDIR /app/backend
+COPY backend/package*.json ./
+RUN npm ci --omit=dev --no-audit && npm cache clean --force
+COPY --from=backend-builder /app/backend/dist ./dist
+COPY backend/scripts ./scripts
+COPY db /app/db
+COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
+USER node
+EXPOSE 3001
+CMD ["node", "dist/server.js"]

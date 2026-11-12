@@ -1,0 +1,163 @@
+# Desenvolvimento no computador: dados próprios, sem usar a stack pública.
+name: mangacloud-local
+
+x-labels: &labels
+  io.mangacloud.local.instance: ${MC_LOCAL_INSTANCE:?Use npm start}
+
+x-service: &service
+  labels: *labels
+  mem_limit: 1g
+  restart: unless-stopped
+  pull_policy: never
+
+x-db: &database
+  DB_HOST: db
+  DB_PORT: "3306"
+  DB_NAME: mangacloud_local
+  DB_USER: mangacloud
+  DB_PASSWORD: ${MC_LOCAL_DB_PASSWORD}
+  JWT_SECRET: ${MC_LOCAL_JWT_SECRET}
+  INTERNAL_SERVICE_TOKEN: ${MC_LOCAL_INTERNAL_TOKEN}
+  DOTENV_CONFIG_QUIET: "true"
+
+x-app: &application
+  <<: *database
+  PORT: "3001"
+  APP_URL: http://localhost:${MC_LOCAL_PORT:-8224}
+  AUTH_SERVICE_URL: http://auth-service:3000
+  LOG_SERVICE_URL: http://log-service:3002
+  MINIO_ENDPOINT: minio
+  MINIO_PORT: "9000"
+  MINIO_SSL: "false"
+  MINIO_REGION: us-east-1
+  MINIO_ROOT_USER: mangacloudlocal
+  MINIO_ROOT_PASSWORD: ${MC_LOCAL_MINIO_PASSWORD}
+  CATALOG_PROVIDER: demo
+  STRIPE_DEMO_ENABLED: "false"
+  STRIPE_SECRET_KEY: ""
+  STRIPE_PRICE_ID: ""
+  STRIPE_WEBHOOK_SECRET: ""
+  QA_LEITOR_EMAIL: ""
+  QA_LEITOR_PASSWORD: ""
+  QA_CURADOR_EMAIL: ""
+  QA_CURADOR_PASSWORD: ""
+  QA_ADMIN_EMAIL: admin@mangacloud.local
+  QA_ADMIN_PASSWORD: MangaCloudLocal123!
+
+services:
+  db:
+    <<: *service
+    image: mariadb:11.8
+    environment:
+      MARIADB_DATABASE: mangacloud_local
+      MARIADB_USER: mangacloud
+      MARIADB_PASSWORD: ${MC_LOCAL_DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${MC_LOCAL_DB_ROOT_PASSWORD}
+    volumes: [db_data:/var/lib/mysql]
+    healthcheck:
+      test: [CMD, healthcheck.sh, --connect, --innodb_initialized]
+      interval: 3s
+      timeout: 3s
+      retries: 25
+
+  minio:
+    <<: *service
+    image: elestio/minio:latest
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: mangacloudlocal
+      MINIO_ROOT_PASSWORD: ${MC_LOCAL_MINIO_PASSWORD}
+    volumes: [minio_data:/data]
+    healthcheck:
+      test: [CMD, curl, -f, http://127.0.0.1:9000/minio/health/ready]
+      interval: 3s
+      timeout: 3s
+      retries: 25
+
+  redis:
+    <<: *service
+    image: redis:7-alpine
+    command: [redis-server, --appendonly, "yes", --requirepass, "${MC_LOCAL_REDIS_PASSWORD}"]
+    environment:
+      REDISCLI_AUTH: ${MC_LOCAL_REDIS_PASSWORD}
+    volumes: [redis_data:/data]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 3s
+      timeout: 3s
+      retries: 25
+
+  init:
+    <<: *service
+    image: ${MC_LOCAL_APP_IMAGE}
+    restart: "no"
+    command: [sh, -c, "npm run db:migrate && npm run db:seed"]
+    environment: *application
+    depends_on:
+      db: { condition: service_healthy }
+
+  log-service:
+    <<: *service
+    image: ${MC_LOCAL_LOG_IMAGE}
+    environment:
+      LOG_PORT: "3002"
+      REDIS_URL: redis://:${MC_LOCAL_REDIS_PASSWORD}@redis:6379
+      INTERNAL_SERVICE_TOKEN: ${MC_LOCAL_INTERNAL_TOKEN}
+      AUDIT_STREAM_MAXLEN: "1000"
+    depends_on:
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3002/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  auth-service:
+    <<: *service
+    image: ${MC_LOCAL_AUTH_IMAGE}
+    environment:
+      <<: *database
+      AUTH_PORT: "3000"
+      APP_URL: http://localhost:${MC_LOCAL_PORT:-8224}
+      LOG_SERVICE_URL: http://log-service:3002
+      MAILTRAP_HOST: ""
+      MAILTRAP_USER: ""
+      MAILTRAP_PASS: ""
+      MAIL_FROM: MangaCloud Local <noreply@mangacloud.local>
+    depends_on:
+      init: { condition: service_completed_successfully }
+      log-service: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  app:
+    <<: *service
+    image: ${MC_LOCAL_APP_IMAGE}
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    environment: *application
+    ports: ["127.0.0.1:${MC_LOCAL_PORT:-8224}:3001"]
+    depends_on:
+      auth-service: { condition: service_healthy }
+      minio: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3001/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+networks:
+  default:
+    labels: *labels
+
+volumes:
+  db_data:
+    labels: *labels
+  minio_data:
+    labels: *labels
+  redis_data:
+    labels: *labels
