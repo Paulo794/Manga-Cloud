@@ -37,3 +37,9 @@ docs/historico/
 docs/qa/
 tests/
 scripts/qa/
+
+# Documentacoes internas e scripts locais
+docs/EXECUCAO_LOCAL_MANGACLOUD.md
+docs/OPERACAO_MANGACLOUD.md
+docs/PRD_ATIVIDADE_10_MANGACLOUD.md
+scripts/
