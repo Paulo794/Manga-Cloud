@@ -1,5 +1,7 @@
 import dotenv from 'dotenv';
+import path from 'path';
 
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 dotenv.config();
 
 if (!process.env.INTERNAL_SERVICE_TOKEN) {

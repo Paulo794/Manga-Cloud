@@ -60,5 +60,7 @@ export const getRecentEvents = async (limit: number): Promise<AuditEvent[]> => {
 };
 
 export const checkRedisHealth = (): boolean => {
-  return client.isOpen;
+  return client.isReady;
 };
+
+export async function disconnectRedis() { if (client.isOpen) await client.quit(); }
