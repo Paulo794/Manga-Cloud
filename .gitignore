@@ -6,8 +6,34 @@ auth-service/node_modules/
 backend/.env
 frontend/.env
 dist/
+.local/
 
 # Compiled TS output in src
 backend/src/**/*.js
 backend/src/**/*.d.ts
 backend/src/**/*.map
+
+# Binarios e arquivos compilados
+typst
+backend/stripe
+
+# Relatorios e arquivos da P1
+*.pdf
+P1_Final.typ
+prints/
+
+# Conversas, prompts e rascunhos de IA
+prd-claude/
+resumo/
+prd-documentacaoatividades/
+prd-documentaçãoatividades/
+db/002_seed_temporadas.sql
+docs/ROTEIRO_*.md
+docs/STATUS_*.md
+docs/REVISAO_*.md
+docs/QA_*.md
+docs/ENTREGA_*.md
+docs/historico/
+docs/qa/
+tests/
+scripts/qa/
