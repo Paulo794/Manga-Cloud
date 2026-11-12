@@ -6,6 +6,7 @@ import {
   COORDINATION_LOCKS,
   LEGACY_001_MIGRATION,
   MANGACLOUD_002_MIGRATION,
+  BILLING_004_MIGRATION,
   migrateRolesToMangaCloud,
   releaseCoordinationLocks,
   resolveDbFilePath,
@@ -83,7 +84,7 @@ export async function runPhase2UnitSuite(): Promise<void> {
     }
   };
   const cleanPlan = await resolveEffectiveMigrations(cleanDbConn);
-  assert.deepStrictEqual(cleanPlan.map((m) => m.version), [MANGACLOUD_002_MIGRATION.version]);
+  assert.deepStrictEqual(cleanPlan.map((m) => m.version), [MANGACLOUD_002_MIGRATION.version, BILLING_004_MIGRATION.version]);
 
   const incompleteFootballConn: any = {
     query: async (sql: string) => {
@@ -95,7 +96,7 @@ export async function runPhase2UnitSuite(): Promise<void> {
   const incompletePlan = await resolveEffectiveMigrations(incompleteFootballConn);
   assert.deepStrictEqual(
     incompletePlan.map((m) => m.version),
-    [LEGACY_001_MIGRATION.version, MANGACLOUD_002_MIGRATION.version]
+    [LEGACY_001_MIGRATION.version, MANGACLOUD_002_MIGRATION.version, BILLING_004_MIGRATION.version]
   );
   console.log('[OK] 3. Seleção simulada de plano de migração (limpo vs. incompleto) conferida.');
 
@@ -198,9 +199,14 @@ export async function runPhase2MariaDbIntegrationSuite(): Promise<void> {
     const [appliedRows] = await adminConn.query<RowDataPacket[]>(
       'SELECT version, status FROM schema_migrations'
     );
-    assert.strictEqual(appliedRows.length, 1);
-    assert.strictEqual(appliedRows[0]?.version, '002_dominio_mangacloud');
-    assert.strictEqual(appliedRows[0]?.status, 'applied');
+    assert.deepStrictEqual(appliedRows.map(row => ({ version: row.version, status: row.status })).sort((a, b) => a.version.localeCompare(b.version)), [
+      { version: MANGACLOUD_002_MIGRATION.version, status: 'applied' },
+      { version: BILLING_004_MIGRATION.version, status: 'applied' }
+    ]);
+    // Simula retomada após DDL aplicado e antes de registrar sucesso, sem
+    // reescrever o SQL ou perder identidades já criadas.
+    await adminConn.query("UPDATE schema_migrations SET status='failed' WHERE version=?", [BILLING_004_MIGRATION.version]);
+    await runMigrations();
 
     const [cleanTables] = await adminConn.query<RowDataPacket[]>('SHOW TABLES');
     const cleanTableSet = new Set(cleanTables.map((r) => String(Object.values(r)[0])));
@@ -282,7 +288,8 @@ export async function runPhase2MariaDbIntegrationSuite(): Promise<void> {
       incMigs.map((m) => ({ v: String(m.version), s: String(m.status) })),
       [
         { v: '001_dominio_acervo_tricolor', s: 'applied' },
-        { v: '002_dominio_mangacloud', s: 'applied' }
+        { v: '002_dominio_mangacloud', s: 'applied' },
+        { v: '004_identidade_cobranca', s: 'applied' }
       ]
     );
     console.log('[OK] Int-3: Recuperação de banco legado parcial (tabela temporadas pré-existente sem registro 001) validada.');

@@ -58,9 +58,15 @@ export const MANGACLOUD_002_MIGRATION: MigrationDefinition = {
   runMangaCloudRoleTransition: true
 };
 
+export const BILLING_004_MIGRATION: MigrationDefinition = {
+  version: '004_identidade_cobranca',
+  filename: '004_identidade_cobranca.sql'
+};
+
 export const DEFAULT_MIGRATIONS: MigrationDefinition[] = [
   LEGACY_001_MIGRATION,
-  MANGACLOUD_002_MIGRATION
+  MANGACLOUD_002_MIGRATION,
+  BILLING_004_MIGRATION
 ];
 
 export function resolveDbFilePath(filename: string): string {
@@ -251,10 +257,10 @@ export async function resolveEffectiveMigrations(
         '[Migrate] Detectadas tabelas legadas de futebol sem registro em schema_migrations; incluindo 001_dominio_acervo_tricolor para recuperação segura.'
       );
     }
-    return [LEGACY_001_MIGRATION, MANGACLOUD_002_MIGRATION];
+    return [LEGACY_001_MIGRATION, MANGACLOUD_002_MIGRATION, BILLING_004_MIGRATION];
   }
 
-  return [MANGACLOUD_002_MIGRATION];
+  return [MANGACLOUD_002_MIGRATION, BILLING_004_MIGRATION];
 }
 
 export async function runMigrations(
