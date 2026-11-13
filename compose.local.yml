@@ -33,10 +33,10 @@ x-app: &application
   MINIO_ROOT_USER: mangacloudlocal
   MINIO_ROOT_PASSWORD: ${MC_LOCAL_MINIO_PASSWORD}
   CATALOG_PROVIDER: demo
-  STRIPE_DEMO_ENABLED: "false"
-  STRIPE_SECRET_KEY: ""
-  STRIPE_PRICE_ID: ""
-  STRIPE_WEBHOOK_SECRET: ""
+  STRIPE_DEMO_ENABLED: ${MC_LOCAL_STRIPE_DEMO_ENABLED:-false}
+  STRIPE_SECRET_KEY: ${MC_LOCAL_STRIPE_SECRET_KEY:-}
+  STRIPE_PRICE_ID: ${MC_LOCAL_STRIPE_PRICE_ID:-}
+  STRIPE_WEBHOOK_SECRET: ${MC_LOCAL_STRIPE_WEBHOOK_SECRET:-}
   QA_LEITOR_EMAIL: ""
   QA_LEITOR_PASSWORD: ""
   QA_CURADOR_EMAIL: ""
@@ -120,10 +120,11 @@ services:
       AUTH_PORT: "3000"
       APP_URL: http://localhost:${MC_LOCAL_PORT:-8224}
       LOG_SERVICE_URL: http://log-service:3002
-      MAILTRAP_HOST: ""
-      MAILTRAP_USER: ""
-      MAILTRAP_PASS: ""
-      MAIL_FROM: MangaCloud Local <noreply@mangacloud.local>
+      MAILTRAP_HOST: ${MC_LOCAL_MAILTRAP_HOST:-}
+      MAILTRAP_PORT: ${MC_LOCAL_MAILTRAP_PORT:-2525}
+      MAILTRAP_USER: ${MC_LOCAL_MAILTRAP_USER:-}
+      MAILTRAP_PASS: ${MC_LOCAL_MAILTRAP_PASS:-}
+      MAIL_FROM: ${MC_LOCAL_MAIL_FROM:-MangaCloud Local <noreply@mangacloud.local>}
     depends_on:
       init: { condition: service_completed_successfully }
       log-service: { condition: service_healthy }
