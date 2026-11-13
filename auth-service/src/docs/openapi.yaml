@@ -69,6 +69,7 @@ components:
           enum:
             - demo
             - mangadex
+            - anilist
         chapterId:
           type: string
         mangaId:

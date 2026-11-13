@@ -1,6 +1,6 @@
-export type ProviderId = 'mangadex' | 'demo';
+export type ProviderId = 'mangadex' | 'demo' | 'anilist';
 
-export const ALLOWED_PROVIDERS: readonly ProviderId[] = ['mangadex', 'demo'] as const;
+export const ALLOWED_PROVIDERS: readonly ProviderId[] = ['mangadex', 'demo', 'anilist'] as const;
 
 export class ProviderError extends Error {
   public readonly statusCode: number;
@@ -26,11 +26,11 @@ export class ProviderError extends Error {
 
 export function assertValidProvider(raw: unknown, fallback?: ProviderId): ProviderId {
   const value = (typeof raw === 'string' && raw.trim() !== '' ? raw.trim().toLowerCase() : fallback) ?? '';
-  if (value === 'mangadex' || value === 'demo') {
+  if (value === 'mangadex' || value === 'demo' || value === 'anilist') {
     return value;
   }
   throw new ProviderError({
-    message: `Provedor inválido '${String(raw ?? '')}'. Use 'mangadex' ou 'demo'.`,
+    message: `Provedor inválido '${String(raw ?? '')}'. Use 'anilist', 'mangadex' ou 'demo'.`,
     statusCode: 400,
     code: 'INVALID_PROVIDER',
     provider: String(raw ?? 'unknown')

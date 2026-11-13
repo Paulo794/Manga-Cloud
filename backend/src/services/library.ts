@@ -1,5 +1,5 @@
 import type { Pool, RowDataPacket } from 'mysql2/promise';
-import { getCatalogProvider, assertValidProvider } from '../providers';
+import { ALLOWED_PROVIDERS, getCatalogProvider, assertValidProvider } from '../providers';
 import { HttpError, missing } from '../http';
 import { mangadexCovers } from './mangadexCovers';
 
@@ -10,7 +10,7 @@ export async function ownShelf(db: Pick<Pool, 'query'>, user: number, shelf: num
 }
 export async function hydrateReferences(rows: RowDataPacket[]) {
   const metadata = new Map<string, unknown>();
-  for (const provider of ['demo', 'mangadex'] as const) {
+  for (const provider of ALLOWED_PROVIDERS) {
     const ids = [...new Set(rows.filter(r => r.provider === provider).map(r => String(r.manga_id)))];
     for (let i = 0; i < ids.length; i += 100) {
       try {

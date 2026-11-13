@@ -3,7 +3,7 @@ const path = require('node:path');
 const YAML = require('yamljs');
 const object = properties => ({ type: 'object', properties });
 const string = { type: 'string' }, integer = { type: 'integer' };
-const reference = { type: 'string', enum: ['demo', 'mangadex'] };
+const reference = { type: 'string', enum: ['demo', 'mangadex', 'anilist'] };
 const doc = { openapi: '3.0.3', info: { title: 'MangaCloud API', version: '2.0.0', description: 'Estantes privadas, catálogo e leitura. MangaDex real não possui paywall comercial; assinatura de teste aplica-se ao Demo. Papel e plano são independentes.' }, servers: [{ url: '/api' }], security: [{ BearerAuth: [] }], components: { securitySchemes: { BearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' } }, schemas: {
   Error: object({ code: string, message: string, requestId: string }),
   Shelf: object({ id: integer, nome: { type: 'string', maxLength: 100 }, descricao: { type: 'string', maxLength: 1000, nullable: true }, totalItens: integer, possuiCapa: { type: 'boolean' } }),
@@ -43,6 +43,7 @@ route('/estantes/{id}/capa', 'delete', 'Remover capa própria', { status: '204' 
 route('/favoritos', 'get', 'Listar favoritos próprios', { query: paged });
 route('/favoritos', 'post', 'Favoritar referência externa', { status: '201', body: object({ provider: reference, mangaId: string }) });
 route('/favoritos/{provider}/{mangaId}', 'delete', 'Remover favorito próprio', { status: '204' });
+route('/mangas/config', 'get', 'Consultar provedor padrão de catálogo configurado no servidor', { public: true, response: object({ defaultProvider: reference }) });
 route('/mangas', 'get', 'Buscar obras na fonte selecionada, sem fallback silencioso', { optional: true, query: [...paged, ['provider', reference], ['q', string], ['tag', string], ['idioma', string]] });
 route('/mangas/tags', 'get', 'Consultar tags da fonte', { public: true, query: [['provider', reference]] });
 route('/mangas/{provider}/{mangaId}', 'get', 'Detalhar obra permitida', { public: true });
