@@ -8,7 +8,7 @@ export function Notice({ children, error = false }: { children: React.ReactNode;
 }
 export function MangaCard({ manga }: { manga: Manga }) {
   return <Link className="manga-card" to={`/mangas/${manga.provider}/${manga.id}`}>
-    <div className="cover">{manga.coverUrl ? <img src={manga.coverUrl} alt={`Capa de ${manga.title}`} loading="lazy" /> : <span>SEM CAPA</span>}<span className="source-tag">{manga.isDemo ? 'DEMO' : 'MANGADEX'}</span></div>
+    <div className="cover">{manga.coverUrl ? <img src={manga.coverUrl} alt={`Capa de ${manga.title}`} loading="lazy" /> : <span>SEM CAPA</span>}<span className="source-tag">{manga.isDemo ? 'DEMO' : manga.provider === 'anilist' ? 'ANILIST' : 'MANGADEX'}</span></div>
     <h3>{manga.title}</h3><p>{manga.tags.slice(0, 2).map(t => t.name).join(' · ') || 'Mangá'}</p>
   </Link>;
 }
