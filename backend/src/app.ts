@@ -5,7 +5,7 @@ import fs from 'fs';
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
 import type Stripe from 'stripe';
-import type { Pool } from 'mysql2/promise';
+import type { Pool, RowDataPacket } from 'mysql2/promise';
 import pool from './db';
 import { audit } from './audit/auditClient';
 import { requestId, errorHandler, HttpError } from './http';
@@ -17,6 +17,7 @@ import { makeAuthenticate } from './middleware/authMiddleware';
 import { requireRole } from './middleware/requireRole';
 import { ObjectStore, MinioStore } from './services/storage';
 import { billingRouter, stripeWebhook } from './routes/billing';
+import { PRO_MONTHLY_PRICE_CENTS } from './services/library';
 
 export function createApp(options: { db?: Pool; store?: ObjectStore; emit?: typeof audit; billingClient?: () => Stripe } = {}) {
   const db = options.db ?? pool, store = options.store ?? new MinioStore(), emit = options.emit ?? audit;
@@ -45,6 +46,32 @@ export function createApp(options: { db?: Pool; store?: ObjectStore; emit?: type
   app.use('/api/profile', profileRouter(db, store));
   app.use('/api', readingRouter(db, emit));
   app.use('/api/stripe', billingRouter(db, options.billingClient, emit));
+  app.get('/api/admin/metricas', makeAuthenticate(db), requireRole('admin'), async (_req, res) => {
+    const [totalRows] = await db.query<RowDataPacket[]>('SELECT COUNT(*) AS total FROM usuarios');
+    const [subRows] = await db.query<RowDataPacket[]>(
+      `SELECT
+        SUM(CASE WHEN status='active' AND acesso_ate > UTC_TIMESTAMP() THEN 1 ELSE 0 END) AS proAtivas,
+        SUM(CASE WHEN status IN ('past_due', 'unpaid') THEN 1 ELSE 0 END) AS inadimplentes,
+        SUM(CASE WHEN status='active' AND acesso_ate > UTC_TIMESTAMP() AND cancel_at_period_end=1 THEN 1 ELSE 0 END) AS cancelamentoAgendado,
+        SUM(CASE WHEN status='canceled' THEN 1 ELSE 0 END) AS canceladas
+      FROM assinaturas`
+    );
+    const totalUsuarios = Number(totalRows[0]?.total ?? 0);
+    const proAtivas = Number(subRows[0]?.proAtivas ?? 0);
+    res.json({
+      totalUsuarios,
+      usuariosPorPlano: { free: Math.max(0, totalUsuarios - proAtivas), pro: proAtivas },
+      assinaturasAtivas: proAtivas,
+      assinaturasPorStatus: {
+        ativas: proAtivas,
+        inadimplentes: Number(subRows[0]?.inadimplentes ?? 0),
+        cancelamentoAgendado: Number(subRows[0]?.cancelamentoAgendado ?? 0),
+        canceladas: Number(subRows[0]?.canceladas ?? 0)
+      },
+      precoProCentavos: PRO_MONTHLY_PRICE_CENTS,
+      mrrCentavos: proAtivas * PRO_MONTHLY_PRICE_CENTS
+    });
+  });
   app.get('/api/admin/logs', makeAuthenticate(db), requireRole('admin'), async (_req, res) => {
     try {
       const upstream = await fetch(`${process.env.LOG_SERVICE_URL || 'http://log-service:3002'}/events?limit=100`, { headers: { 'X-Internal-Token': process.env.INTERNAL_SERVICE_TOKEN || '' }, signal: AbortSignal.timeout(3000) });

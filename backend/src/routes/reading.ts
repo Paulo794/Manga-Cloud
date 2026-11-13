@@ -75,7 +75,7 @@ export function readingRouter(db: Pool, emit: typeof audit = audit) {
     res.json(rows[0]);
   });
   router.put('/progresso/:provider/:mangaId', makeAuthenticate(db), async (req: AuthRequest, res) => {
-    if (!(await currentSubscription(db, req.user!.id)).isPro) throw new HttpError(403, 'PLAN_REQUIRED', 'O progresso automático está disponível no Pro.');
+    if (!(await currentSubscription(db, req.user!.id)).isPro) throw new HttpError(403, 'PLAN_REQUIRED', 'Limite do plano Free atingido: o salvamento automático de página requer o plano Pro (R$ 9,90/mês). Assine em Planos para liberar este recurso.');
     const provider = assertValidProvider(req.params.provider), mangaId = text(req.params.mangaId, 100, true);
     const chapterId = text(req.body?.chapterId, 100, true), language = text(req.body?.idioma, 16, true);
     const revision = req.body?.revisaoEsperada, page = req.body?.pagina;

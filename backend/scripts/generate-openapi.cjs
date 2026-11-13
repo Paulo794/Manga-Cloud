@@ -7,7 +7,7 @@ const reference = { type: 'string', enum: ['demo', 'mangadex', 'anilist'] };
 const doc = { openapi: '3.0.3', info: { title: 'MangaCloud API', version: '2.0.0', description: 'Estantes privadas, catálogo e leitura. MangaDex real não possui paywall comercial; assinatura de teste aplica-se ao Demo. Papel e plano são independentes.' }, servers: [{ url: '/api' }], security: [{ BearerAuth: [] }], components: { securitySchemes: { BearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' } }, schemas: {
   Error: object({ code: string, message: string, requestId: string }),
   Shelf: object({ id: integer, nome: { type: 'string', maxLength: 100 }, descricao: { type: 'string', maxLength: 1000, nullable: true }, totalItens: integer, possuiCapa: { type: 'boolean' } }),
-  Subscription: object({ plano: { type: 'string', enum: ['free', 'pro'] }, isPro: { type: 'boolean' }, status: string, acessoAte: { type: 'string', format: 'date-time', nullable: true }, cancelAtPeriodEnd: { type: 'boolean' }, canManageRenewal: { type: 'boolean' } }),
+  Subscription: object({ plano: { type: 'string', enum: ['free', 'pro'] }, isPro: { type: 'boolean' }, status: string, inadimplente: { type: 'boolean' }, hasBillingAccount: { type: 'boolean' }, acessoAte: { type: 'string', format: 'date-time', nullable: true }, cancelAtPeriodEnd: { type: 'boolean' }, canManageRenewal: { type: 'boolean' } }),
   Manifest: object({ provider: reference, chapterId: string, mangaId: string, title: string, language: string, totalPages: integer, pages: { type: 'array', items: object({ pageNumber: integer, imageUrl: string }) } })
 } }, paths: {} };
 function route(url, method, summary, options = {}) {
@@ -29,7 +29,7 @@ route('/auth/logout', 'post', 'Registrar saída no navegador');
 route('/auth/forgot-password', 'post', 'Solicitar recuperação de senha', { public: true, body: object({ email: string }) });
 route('/auth/reset-password', 'post', 'Consumir token de recuperação uma única vez', { public: true, body: object({ token: string, novaSenha: string }) });
 route('/estantes', 'get', 'Listar somente as próprias estantes', { query: paged });
-route('/estantes', 'post', 'Criar estante privada', { status: '201', body: { ...object({ nome: { type: 'string', minLength: 1, maxLength: 100 }, descricao: { type: 'string', maxLength: 1000 } }), required: ['nome'] } });
+route('/estantes', 'post', 'Criar estante privada (Free: até 3 estantes; Pro: ilimitado)', { status: '201', body: { ...object({ nome: { type: 'string', minLength: 1, maxLength: 100 }, descricao: { type: 'string', maxLength: 1000 } }), required: ['nome'] } });
 route('/estantes/{id}', 'get', 'Detalhar estante própria e itens hidratados em lote', { query: paged });
 route('/estantes/{id}', 'patch', 'Editar nome/descrição da própria estante', { body: object({ nome: string, descricao: { ...string, nullable: true } }) });
 route('/estantes/{id}', 'delete', 'Excluir estante e agendar remoção de capa', { status: '204' });
@@ -61,10 +61,12 @@ route('/profile/avatar', 'get', 'Obter avatar privado autenticado');
 doc.paths['/profile/avatar'].get.responses[200].content = { 'image/webp': { schema: { type: 'string', format: 'binary' } } };
 route('/profile/avatar', 'post', 'Enviar avatar até 5 MiB', { status: '201', multipart: true, body: object({ file: { type: 'string', format: 'binary' } }) });
 route('/curadoria/integracao', 'get', 'Curador/admin: disponibilidade técnica e totais de limpeza, sem bibliotecas alheias');
-route('/admin/usuarios', 'get', 'Admin: usuários sem dados privados de biblioteca ou hashes', { query: paged });
+route('/admin/usuarios', 'get', 'Admin: usuários com plano atual, sem dados privados ou hashes', { query: paged });
 route('/admin/usuarios/{id}/papel', 'patch', 'Admin: mudar papel com revalidação no auth-service', { body: object({ papel: { type: 'string', enum: ['leitor', 'curador', 'admin'] } }) });
+route('/admin/metricas', 'get', 'Admin: contagem de usuários por plano, assinaturas ativas e MRR de teste');
 route('/admin/logs', 'get', 'Admin: trilha de auditoria do log-service');
 route('/stripe/checkout', 'post', 'Criar/reutilizar checkout de teste; preço e cliente definidos pelo servidor', { body: object({}) });
+route('/stripe/portal', 'post', 'Abrir sessão do Billing Portal de teste do Stripe para trocar de plano ou cancelar', { body: object({}), response: object({ url: string }) });
 route('/stripe/cancelar', 'post', 'Cancelar renovação da própria assinatura ao fim do período pago; preserva dados', { body: object({}), response: { $ref: '#/components/schemas/Subscription' } });
 route('/stripe/reativar', 'post', 'Manter renovação da própria assinatura ainda ativa, antes do cancelamento efetivo', { body: object({}), response: { $ref: '#/components/schemas/Subscription' } });
 route('/stripe/webhook', 'post', 'Webhook Stripe de teste, raw body e assinatura obrigatória', { public: true, body: object({}), headers: [{ in: 'header', name: 'stripe-signature', required: true, schema: string }] });

@@ -53,6 +53,10 @@ components:
           type: boolean
         status:
           type: string
+        inadimplente:
+          type: boolean
+        hasBillingAccount:
+          type: boolean
         acessoAte:
           type: string
           format: date-time
@@ -708,7 +712,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
     post:
-      summary: 'Criar estante privada'
+      summary: 'Criar estante privada (Free: até 3 estantes; Pro: ilimitado)'
       parameters: []
       responses:
         '201':
@@ -3351,7 +3355,7 @@ paths:
                 $ref: '#/components/schemas/Error'
   /admin/usuarios:
     get:
-      summary: 'Admin: usuários sem dados privados de biblioteca ou hashes'
+      summary: 'Admin: usuários com plano atual, sem dados privados ou hashes'
       parameters:
         -
           name: page
@@ -3537,6 +3541,84 @@ paths:
                     - leitor
                     - curador
                     - admin
+  /admin/metricas:
+    get:
+      summary: 'Admin: contagem de usuários por plano, assinaturas ativas e MRR de teste'
+      parameters: []
+      responses:
+        '200':
+          description: 'Operação concluída.'
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '504':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /admin/logs:
     get:
       summary: 'Admin: trilha de auditoria do log-service'
@@ -3627,6 +3709,93 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
+        '400':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '504':
+          description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+  /stripe/portal:
+    post:
+      summary: 'Abrir sessão do Billing Portal de teste do Stripe para trocar de plano ou cancelar'
+      parameters: []
+      responses:
+        '200':
+          description: 'Operação concluída.'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
         '400':
           description: 'Erro validado. 403 pode indicar PLAN_REQUIRED; respostas negadas nunca contêm páginas.'
           content:

@@ -53,6 +53,10 @@ components:
           type: boolean
         status:
           type: string
+        inadimplente:
+          type: boolean
+        hasBillingAccount:
+          type: boolean
         acessoAte:
           type: string
           format: date-time
@@ -540,7 +544,7 @@ paths:
                   type: string
   /admin/usuarios:
     get:
-      summary: 'Admin: usuários sem dados privados de biblioteca ou hashes'
+      summary: 'Admin: usuários com plano atual, sem dados privados ou hashes'
       parameters:
         -
           name: page

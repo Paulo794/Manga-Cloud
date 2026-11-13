@@ -5,7 +5,7 @@ import { pipeline } from 'stream';
 import { AuthRequest, makeAuthenticate } from '../middleware/authMiddleware';
 import { id, text, pagination, missing, HttpError } from '../http';
 import { assertValidProvider, getCatalogProvider } from '../providers';
-import { ownShelf, hydrateReferences } from '../services/library';
+import { ownShelf, hydrateReferences, currentSubscription, FREE_SHELF_LIMIT } from '../services/library';
 import { ObjectStore, COVERS_BUCKET, validateImage, limitUploads, queueRemoval, compensateObject } from '../services/storage';
 import { audit } from '../audit/auditClient';
 
@@ -30,9 +30,27 @@ export function libraryRouter(db: Pool, store: ObjectStore, emit: typeof audit =
   });
   router.post('/', async (req: AuthRequest, res) => {
     const name = text(req.body?.nome, 100, true), description = req.body?.descricao == null ? null : text(req.body.descricao, 1000);
-    const [result] = await db.query<ResultSetHeader>('INSERT INTO estantes (usuario_id, nome, descricao) VALUES (?, ?, ?)', [req.user!.id, name, description]);
-    event(req, 'estante.criada', `estante:${result.insertId}`);
-    res.status(201).json({ id: result.insertId, nome: name, descricao: description });
+    const conn = await db.getConnection();
+    let createdId: number;
+    try {
+      await conn.beginTransaction();
+      await conn.query('SELECT id FROM usuarios WHERE id=? FOR UPDATE', [req.user!.id]);
+      const subscription = await currentSubscription(conn, req.user!.id);
+      if (!subscription.isPro) {
+        const [countRows] = await conn.query<RowDataPacket[]>('SELECT COUNT(*) AS total FROM estantes WHERE usuario_id=?', [req.user!.id]);
+        const total = Number(countRows[0]!.total);
+        if (total >= FREE_SHELF_LIMIT) {
+          emit({ usuario_id: req.user!.id, acao: 'estante.limite_atingido', resultado: 'negado', recurso: 'estantes', detalhe: { plano: 'free', usado: total, limite: FREE_SHELF_LIMIT } });
+          throw new HttpError(403, 'PLAN_REQUIRED', `Limite do plano Free atingido: você pode criar até ${FREE_SHELF_LIMIT} estantes pessoais no plano gratuito (atual: ${total}/${FREE_SHELF_LIMIT}). Assine o plano Pro (R$ 9,90/mês) em Planos para liberar estantes ilimitadas.`);
+        }
+      }
+      const [result] = await conn.query<ResultSetHeader>('INSERT INTO estantes (usuario_id, nome, descricao) VALUES (?, ?, ?)', [req.user!.id, name, description]);
+      createdId = result.insertId;
+      await conn.commit();
+    } catch (error) { await conn.rollback(); throw error; }
+    finally { conn.release(); }
+    event(req, 'estante.criada', `estante:${createdId}`);
+    res.status(201).json({ id: createdId, nome: name, descricao: description });
   });
   router.get('/:id', async (req: AuthRequest, res) => {
     const shelf = await ownShelf(db, req.user!.id, id(req.params.id));

@@ -11,6 +11,7 @@ export const ESTANTE_ITEM_ADICIONADO = 'estante.item_adicionado';
 export const ESTANTE_ITEM_REMOVIDO = 'estante.item_removido';
 export const ESTANTE_CAPA_ENVIADA = 'estante.capa_enviada';
 export const ESTANTE_CAPA_REMOVIDA = 'estante.capa_removida';
+export const ESTANTE_LIMITE_ATINGIDO = 'estante.limite_atingido';
 
 export const FAVORITO_ADICIONADO = 'favorito.adicionado';
 export const FAVORITO_CRIADO = 'favorito.criado';
@@ -20,6 +21,8 @@ export const LEITURA_LIBERADA = 'leitura.liberada';
 export const LEITURA_BLOQUEADA = 'leitura.bloqueada';
 export const PROGRESSO_ATUALIZADO = 'progresso.atualizado';
 export const ASSINATURA_ATUALIZADA = 'assinatura.atualizada';
+export const ASSINATURA_PAGAMENTO_FALHOU = 'assinatura.pagamento_falhou';
+export const ASSINATURA_PORTAL_ABERTO = 'assinatura.portal_aberto';
 export const ASSINATURA_RENOVACAO_CANCELADA = 'assinatura.renovacao_cancelada';
 export const ASSINATURA_RENOVACAO_REATIVADA = 'assinatura.renovacao_reativada';
 export const USUARIO_PAPEL_ALTERADO = 'usuario.papel_alterado';

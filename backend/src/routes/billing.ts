@@ -9,12 +9,21 @@ import crypto from 'crypto';
 import { currentSubscription } from '../services/library';
 
 const metadataFor = (user: RowDataPacket) => ({ app: 'mangacloud', userId: String(user.id), billingIdentity: String(user.billing_identity) });
+function ownsCustomer(existing: Stripe.Customer | Stripe.DeletedCustomer, user: RowDataPacket): existing is Stripe.Customer {
+  return !existing.deleted && !existing.livemode && !!user.billing_identity &&
+    existing.metadata?.billingIdentity === user.billing_identity && existing.metadata?.app === 'mangacloud' && existing.metadata?.userId === String(user.id);
+}
 function ownsSubscription(subscription: Stripe.Subscription, user: RowDataPacket) {
   const customer = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
   return subscription.livemode === false && !!user.billing_identity && customer === user.stripe_customer_id &&
     subscription.metadata?.app === 'mangacloud' && subscription.metadata?.userId === String(user.id) && subscription.metadata?.billingIdentity === user.billing_identity;
 }
-const billingError = (error: unknown) => error instanceof HttpError ? error : new HttpError(503, 'BILLING_UNAVAILABLE', 'A assinatura está temporariamente indisponível. Tente novamente.');
+function billingError(error: unknown) {
+  if (error instanceof HttpError) return error;
+  const message = typeof (error as { message?: unknown })?.message === 'string' ? (error as { message: string }).message : '';
+  if (message.includes('default configuration')) return new HttpError(503, 'BILLING_PORTAL_NOT_CONFIGURED', 'Configure e ative o Billing Portal de teste no painel do Stripe antes de usar.');
+  return new HttpError(503, 'BILLING_UNAVAILABLE', 'A assinatura está temporariamente indisponível. Tente novamente.');
+}
 
 function appBase() {
   let base: URL;
@@ -49,7 +58,7 @@ export function billingRouter(db: Pool, clientFactory = getStripe, emit: typeof 
         await conn.query('UPDATE usuarios SET stripe_customer_id=? WHERE id=?', [customer, user.id]);
       } else {
         const existing = await stripe.customers.retrieve(customer);
-        if (existing.deleted || existing.livemode || existing.metadata?.billingIdentity !== user.billing_identity || existing.metadata?.app !== 'mangacloud' || existing.metadata?.userId !== String(user.id)) throw new HttpError(409, 'BILLING_ACCOUNT_MISMATCH', 'Não foi possível confirmar o vínculo da conta de cobrança.');
+        if (!ownsCustomer(existing, user)) throw new HttpError(409, 'BILLING_ACCOUNT_MISMATCH', 'Não foi possível confirmar o vínculo da conta de cobrança.');
       }
       const existingSubs = await stripe.subscriptions.list({ customer, status: 'all', limit: 100 });
       if (existingSubs.data.some(s => !['canceled', 'incomplete_expired'].includes(s.status))) throw new HttpError(409, 'SUBSCRIPTION_EXISTS', 'Já existe uma assinatura em processamento para sua conta.');
@@ -94,6 +103,25 @@ export function billingRouter(db: Pool, clientFactory = getStripe, emit: typeof 
       finally { conn.release(); }
     });
   }
+  router.post('/portal', makeAuthenticate(db), async (req: AuthRequest, res) => {
+    const stripe = clientFactory(), base = appBase();
+    const [users] = await db.query<RowDataPacket[]>('SELECT id, stripe_customer_id, billing_identity FROM usuarios WHERE id=?', [req.user!.id]);
+    const user = users[0];
+    if (!user?.stripe_customer_id || !user.billing_identity) {
+      throw new HttpError(404, 'BILLING_CUSTOMER_NOT_FOUND', 'Você ainda não possui assinatura ou conta de cobrança para gerenciar.');
+    }
+    try {
+      const existing = await stripe.customers.retrieve(user.stripe_customer_id);
+      if (!ownsCustomer(existing, user)) throw new HttpError(409, 'BILLING_ACCOUNT_MISMATCH', 'Não foi possível confirmar o vínculo da conta de cobrança.');
+      const portal = await stripe.billingPortal.sessions.create({
+        customer: existing.id,
+        return_url: `${base}/assinatura?portal=1`
+      });
+      if (!portal.url) throw new HttpError(503, 'BILLING_UNAVAILABLE', 'O portal do cliente não está disponível no momento.');
+      emit({ usuario_id: req.user!.id, acao: 'assinatura.portal_aberto', resultado: 'sucesso', recurso: `cliente:${existing.id}` });
+      res.json({ url: portal.url });
+    } catch (error) { throw billingError(error); }
+  });
   return router;
 }
 
@@ -142,14 +170,21 @@ export function stripeWebhook(db: Pool, emit: typeof audit = audit, clientFactor
       }
       const item = latest.items.data[0], invoice = typeof latest.latest_invoice === 'object' ? latest.latest_invoice : null;
       const paid = latest.status === 'active' && invoice?.status === 'paid' && item?.price.id === process.env.STRIPE_PRICE_ID;
-      const end = item?.current_period_end, until = paid && end ? new Date(end * 1000) : null;
+      const end = item?.current_period_end ?? (latest as { current_period_end?: number }).current_period_end;
+      const until = paid && end ? new Date(end * 1000) : null;
+      const effectiveStatus = event.type === 'invoice.payment_failed' && !paid && latest.status === 'active' ? 'past_due' : latest.status;
+      const isActivePro = !!(until && until.getTime() > Date.now());
       await conn.query(`INSERT INTO assinaturas (usuario_id, stripe_customer_id, stripe_subscription_id, price_id, status, acesso_ate, cancel_at_period_end, ultimo_evento_stripe_ts)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE stripe_customer_id=VALUES(stripe_customer_id), stripe_subscription_id=VALUES(stripe_subscription_id), price_id=VALUES(price_id), status=VALUES(status), acesso_ate=VALUES(acesso_ate), cancel_at_period_end=VALUES(cancel_at_period_end), ultimo_evento_stripe_ts=GREATEST(COALESCE(ultimo_evento_stripe_ts,0), VALUES(ultimo_evento_stripe_ts))`,
-      [userId, customer, latest.id, item?.price.id ?? '', latest.status, until, latest.cancel_at_period_end ? 1 : 0, event.created]);
-      await conn.query('UPDATE usuarios SET stripe_customer_id=?, is_premium=? WHERE id=?', [customer, until && until.getTime() > Date.now() ? 1 : 0, userId]);
+      [userId, customer, latest.id, item?.price.id ?? '', effectiveStatus, until, latest.cancel_at_period_end ? 1 : 0, event.created]);
+      await conn.query('UPDATE usuarios SET stripe_customer_id=?, is_premium=? WHERE id=?', [customer, isActivePro ? 1 : 0, userId]);
       await conn.query("UPDATE stripe_eventos SET status='processed', erro_mensagem=NULL, processado_em=UTC_TIMESTAMP() WHERE event_id=?", [event.id]);
       await conn.commit();
-      emit({ usuario_id: userId, acao: 'assinatura.atualizada', resultado: 'sucesso', recurso: `assinatura:${latest.id}` });
+      const detail = { eventoStripe: event.type, eventId: event.id, status: effectiveStatus, plano: isActivePro ? 'pro' : 'free' };
+      emit({ usuario_id: userId, acao: 'assinatura.atualizada', resultado: 'sucesso', recurso: `assinatura:${latest.id}`, detalhe: detail });
+      if (event.type === 'invoice.payment_failed') {
+        emit({ usuario_id: userId, acao: 'assinatura.pagamento_falhou', resultado: 'negado', recurso: `assinatura:${latest.id}`, detalhe: detail });
+      }
       res.json({ received: true });
     } catch {
       await conn.rollback();
