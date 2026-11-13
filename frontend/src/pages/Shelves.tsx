@@ -7,15 +7,19 @@ import type { Shelf, Page, Reference } from '../domain';
 import { Notice, PrivateImage } from '../components/Common';
 import { Pagination } from '../components/Pagination';
 import { usePagination } from '../hooks/usePagination';
+import { useSession } from '../hooks/useSession';
 
 export function Shelves() {
+  const { user } = useSession();
   const { page, setPage } = usePagination();
   const { data, loading, error } = useLoad<Page<Shelf>>(`/estantes?page=${page}&limit=20`);
-  const [name, setName] = useState(''), [description, setDescription] = useState(''), [message, setMessage] = useState(''), [busy, setBusy] = useState(false);
+  const [name, setName] = useState(''), [description, setDescription] = useState(''), [message, setMessage] = useState(''), [planRequired, setPlanRequired] = useState(false), [busy, setBusy] = useState(false);
   const navigate = useNavigate();
+  const limit = user?.assinatura.limits?.estantesFree ?? 3;
   return <section><span className="eyebrow">UM ESPAÇO SÓ SEU</span><h1>Minhas estantes<span className="accent">.</span></h1><p className="muted">Organize suas leituras. Cada estante e sua capa são privadas.</p>
-    <form className="surface inline-form" onSubmit={async e => { e.preventDefault(); setBusy(true); try { const r = await api.post('/estantes', { nome: name, descricao: description }); navigate(`/estantes/${r.data.id}`); } catch (err) { setMessage(errorMessage(err)); } finally { setBusy(false); } }}><label>Nome da estante<input required maxLength={100} value={name} onChange={e => setName(e.target.value)} placeholder="Ex.: Aventuras para o fim de semana" /></label><label>Descrição<input maxLength={1000} value={description} onChange={e => setDescription(e.target.value)} placeholder="O que você vai guardar aqui?" /></label><button className="button primary" disabled={busy}>{busy ? 'Criando…' : '+ Criar estante'}</button></form>
-    {message && <Notice error>{message}</Notice>}{error && <Notice error>{error}</Notice>}{loading && <Notice>Carregando estantes…</Notice>}
+    <p className="muted">{user?.assinatura.isPro ? 'Plano Pro ativo: estantes pessoais ilimitadas.' : `Plano Free: ${data?.total ?? 0} de ${limit} estantes pessoais utilizadas. `} {!user?.assinatura.isPro && <Link to="/assinatura">Liberar estantes ilimitadas no Pro →</Link>}</p>
+    <form className="surface inline-form" onSubmit={async e => { e.preventDefault(); setBusy(true); setMessage(''); setPlanRequired(false); try { const r = await api.post('/estantes', { nome: name, descricao: description }); navigate(`/estantes/${r.data.id}`); } catch (err) { setMessage(errorMessage(err)); setPlanRequired((err as { response?: { data?: { code?: string } } })?.response?.data?.code === 'PLAN_REQUIRED'); } finally { setBusy(false); } }}><label>Nome da estante<input required maxLength={100} value={name} onChange={e => setName(e.target.value)} placeholder="Ex.: Aventuras para o fim de semana" /></label><label>Descrição<input maxLength={1000} value={description} onChange={e => setDescription(e.target.value)} placeholder="O que você vai guardar aqui?" /></label><button className="button primary" disabled={busy}>{busy ? 'Criando…' : '+ Criar estante'}</button></form>
+    {message && <Notice error>{message} {planRequired && <Link to="/assinatura">Assinar plano Pro →</Link>}</Notice>}{error && <Notice error>{error}</Notice>}{loading && <Notice>Carregando estantes…</Notice>}
     {!loading && data?.items.length === 0 && <Notice>Sua biblioteca começa com a primeira estante. Crie uma acima.</Notice>}
     <div className="shelf-grid">{data?.items.map(s => <Link className="shelf-card" to={`/estantes/${s.id}`} key={s.id}>{s.possuiCapa ? <PrivateImage url={`/estantes/${s.id}/capa`} alt={`Capa da estante ${s.nome}`} /> : <div className="shelf-art">▥<span>SUA ESTANTE</span></div>}<div><h2>{s.nome}</h2><p>{s.descricao || 'Uma coleção de próximas histórias.'}</p><small>{s.totalItens || 0} obras · Privada ↗</small></div></Link>)}</div>
     <Pagination page={page} total={data?.total} count={data?.items.length} busy={loading} onChange={setPage} label="Páginas de estantes" />
