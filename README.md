@@ -62,15 +62,16 @@ A monetização do SaaS ocorre por **assinatura mensal recorrente via Stripe Che
 | Recurso | Plano Leitor Free (R$ 0/mês) | Plano Leitor Pro — R$ 9,90/mês *(hipótese de preço)* |
 | ------- | ---------------------------- | ----------------------------------------------------- |
 | **Navegação no catálogo, busca, filtros por gênero/tags e sinopse** | ✅ Ilimitado | ✅ Ilimitado |
-| **Criação de estantes pessoais (CRUD completo) + upload de capa personalizada (MinIO)** | ✅ Incluso | ✅ Incluso |
+| **Criação de estantes pessoais (CRUD completo) + upload de capa personalizada (MinIO)** | 🔒 **Até 3 estantes pessoais por conta** | 🌟 **Estantes pessoais ilimitadas** |
 | **Marcação de favoritos e visualização da lista de capítulos** | ✅ Incluso | ✅ Incluso |
 | **Acesso ao Web Reader (leitura de páginas dos capítulos)** | 🔒 **No Demo: até as 3 primeiras posições canônicas por obra/idioma** | 🌟 **Acesso completo aos capítulos do Demo** |
 | **Salvamento automático e sincronização de progresso (capítulo + página exata)** | ❌ Não incluso | 🌟 **Sincronização automática de página entre dispositivos** |
 
-**Leitura real:** o catálogo MangaDex não recebe esse paywall. Todos os capítulos disponíveis e permitidos na fonte podem ser lidos após autenticação, sem assinatura. O comparativo de desbloqueio abaixo refere-se somente às fixtures Demo.
+**Leitura real:** o catálogo externo (AniList / MangaDex) não recebe paywall de leitura. Todos os capítulos disponíveis e permitidos na fonte podem ser lidos após autenticação, sem assinatura. Os limites do plano Free aplicados diretamente no backend são **até 3 estantes pessoais**, leitura das **3 primeiras posições canônicas** nas obras Demo e ausência de sincronização automática de página.
 
-- **O que o Plano Free limita (Demo):** Permite explorar todo o catálogo, organizar estantes pessoais com capas próprias, favoritar obras e experimentar o leitor nas **3 primeiras posições canônicas** de cada obra/idioma do Demo. Ao tentar abrir o 4º capítulo em diante, o backend bloqueia a entrega do manifesto de páginas (`403 PLAN_REQUIRED`) e apresenta o convite de assinatura.
-- **Por que o leitor pagaria o Plano Pro (hipótese de R$ 9,90/mês):** Leitores assíduos acompanham obras longas (dezenas ou centenas de capítulos) em mais de um dispositivo e valorizam continuar qualquer série além do 3º capítulo sem interrupções, com retomada automática na página exata em que pararam.
+- **Limites e desbloqueio no backend (`403 PLAN_REQUIRED`):** A cada requisição em `POST /api/estantes`, `GET /api/leitura/demo/:id/manifesto` e `PUT /api/progresso/:provider/:mangaId`, o backend consulta a assinatura vigente no MariaDB. Ao atingir o limite (ex.: tentativa de criar a 4ª estante ou abrir o 4º capítulo Demo), a API recusa com `403 PLAN_REQUIRED`, informa qual é o limite e orienta a assinar o Plano Pro.
+- **Assinatura recorrente, Webhooks e Portal do Cliente:** O checkout usa `mode=subscription` em modo de teste. O plano nunca muda apenas pelo redirecionamento de sucesso: é atualizado exclusivamente via webhook assinado e idempotente (`checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`), e o assinante pode trocar de plano ou cancelar pelo **Billing Portal** (`POST /api/stripe/portal`).
+- **Painel Admin (`admin`):** Exibe contagem de usuários por plano (`Free` e `Pro`), assinaturas ativas, status de inadimplência/cancelamento, **MRR de teste** (`assinaturas ativas × R$ 9,90`) e últimos eventos da trilha de auditoria.
 
 ---
 
