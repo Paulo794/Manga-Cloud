@@ -22,7 +22,17 @@ const DEMO_TAGS: MangaTagDto[] = [
   { id: 'tag-misterio', name: 'Mistério', group: 'theme' }
 ];
 
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function buildDemoCoverDataUri(title: string, subtitle: string, bgStart: string, bgEnd: string): string {
+  const safeTitle = escapeXml(title);
+  const safeSubtitle = escapeXml(subtitle);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="680" viewBox="0 0 480 680">
     <defs>
       <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -33,8 +43,8 @@ function buildDemoCoverDataUri(title: string, subtitle: string, bgStart: string,
     <rect width="480" height="680" fill="url(#g)" rx="16" />
     <rect x="24" y="24" width="432" height="632" fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="3" rx="12" />
     <text x="44" y="72" fill="#fde047" font-family="sans-serif" font-size="16" font-weight="bold" letter-spacing="2">MANGACLOUD DEMO EDITION</text>
-    <text x="44" y="310" fill="#ffffff" font-family="sans-serif" font-size="36" font-weight="bold">${title}</text>
-    <text x="44" y="355" fill="#e2e8f0" font-family="sans-serif" font-size="20">${subtitle}</text>
+    <text x="44" y="310" fill="#ffffff" font-family="sans-serif" font-size="34" font-weight="bold">${safeTitle}</text>
+    <text x="44" y="355" fill="#e2e8f0" font-family="sans-serif" font-size="19">${safeSubtitle}</text>
     <rect x="44" y="560" width="210" height="40" rx="8" fill="rgba(15,23,42,0.75)" />
     <text x="62" y="586" fill="#38bdf8" font-family="sans-serif" font-size="15" font-weight="bold">CONTEÚDO SINTÉTICO</text>
   </svg>`;
@@ -49,12 +59,15 @@ function buildDemoPageDataUri(params: {
   language: string;
 }): string {
   const { workTitle, chapterLabel, pageNumber, totalPages, language } = params;
+  const safeWorkTitle = escapeXml(workTitle);
+  const safeChapterLabel = escapeXml(chapterLabel);
+  const safeLang = escapeXml(language.toUpperCase());
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1280" viewBox="0 0 900 1280">
     <rect width="900" height="1280" fill="#0f172a" />
     <rect x="40" y="40" width="820" height="1200" fill="#f8fafc" stroke="#1e293b" stroke-width="6" rx="8" />
     <rect x="70" y="70" width="760" height="340" fill="#e2e8f0" stroke="#0f172a" stroke-width="4" />
-    <text x="100" y="135" fill="#0f172a" font-family="sans-serif" font-size="30" font-weight="bold">${workTitle}</text>
-    <text x="100" y="185" fill="#334155" font-family="sans-serif" font-size="24">${chapterLabel} • Idioma: ${language.toUpperCase()}</text>
+    <text x="100" y="135" fill="#0f172a" font-family="sans-serif" font-size="30" font-weight="bold">${safeWorkTitle}</text>
+    <text x="100" y="185" fill="#334155" font-family="sans-serif" font-size="24">${safeChapterLabel} • Idioma: ${safeLang}</text>
     <text x="100" y="250" fill="#0f172a" font-family="sans-serif" font-size="20">"O portal da biblioteca dimensional abriu na página ${pageNumber}!"</text>
     <rect x="70" y="440" width="365" height="360" fill="#cbd5e1" stroke="#0f172a" stroke-width="4" />
     <text x="95" y="620" fill="#1e293b" font-family="sans-serif" font-size="22" font-weight="bold">Quadro A — Cena ${pageNumber}.1</text>
@@ -113,11 +126,117 @@ const DEMO_WORKS: MangaDetailDto[] = [
     contentRating: 'safe',
     tags: [DEMO_TAGS[1]!, DEMO_TAGS[5]!],
     availableLanguages: ['en'],
-    authors: [' Equipe Internacional Demo'],
+    authors: ['Equipe Internacional Demo'],
     updatedAt: '2026-10-20T15:00:00.000Z',
+    isDemo: true
+  },
+  {
+    provider: 'demo',
+    id: 'demo-guardioes-aurora',
+    title: 'Guardiões da Aurora Escarlate',
+    synopsis:
+      'Em um arquipélago suspenso acima das nuvens, uma guilda de cartógrafos enfrenta tempestades arcanas para mapear as rotas perdidas do continente antigo.',
+    coverUrl: buildDemoCoverDataUri('Aurora Escarlate', '4 Capítulos · Fantasia e Ação', '#991b1b', '#450a0a'),
+    status: 'ongoing',
+    year: 2026,
+    contentRating: 'safe',
+    tags: [DEMO_TAGS[2]!, DEMO_TAGS[3]!, DEMO_TAGS[4]!],
+    availableLanguages: ['pt-br', 'en'],
+    authors: ['Estúdio Horizonte Demo'],
+    updatedAt: '2026-11-09T14:00:00.000Z',
+    isDemo: true
+  },
+  {
+    provider: 'demo',
+    id: 'demo-ecos-abismo',
+    title: 'Ecos do Abismo Mecânico',
+    synopsis:
+      'Uma engenheira de sensores descobre transmissões antediluvianas vindas das galerias subterrâneas de uma metrópole automatizada.',
+    coverUrl: buildDemoCoverDataUri('Abismo Mecânico', '4 Capítulos · Sci-Fi e Mistério', '#1e293b', '#0284c7'),
+    status: 'ongoing',
+    year: 2026,
+    contentRating: 'safe',
+    tags: [DEMO_TAGS[1]!, DEMO_TAGS[5]!],
+    availableLanguages: ['pt-br'],
+    authors: ['Oficina Sintética MangaCloud'],
+    updatedAt: '2026-11-08T18:30:00.000Z',
+    isDemo: true
+  },
+  {
+    provider: 'demo',
+    id: 'demo-lamina-vento',
+    title: 'A Lâmina do Vento Sul',
+    synopsis:
+      'Dois aprendizes de esgrima e mensageria cruzam fronteiras hostis para entregar uma carta selada antes do equinócio de inverno.',
+    coverUrl: buildDemoCoverDataUri('Vento Sul', '4 Capítulos · Shounen e Aventura', '#065f46', '#0f172a'),
+    status: 'ongoing',
+    year: 2025,
+    contentRating: 'safe',
+    tags: [DEMO_TAGS[0]!, DEMO_TAGS[3]!, DEMO_TAGS[4]!],
+    availableLanguages: ['pt-br', 'en'],
+    authors: ['Coletivo Traço Livre'],
+    updatedAt: '2026-11-05T11:00:00.000Z',
+    isDemo: true
+  },
+  {
+    provider: 'demo',
+    id: 'demo-arquivo-zero',
+    title: 'Arquivo Zero: Memórias de Névoa',
+    synopsis:
+      'Um arquivista urbano reconstrói casos esquecidos a partir de fotografias rasgadas e registros meteorológicos de uma cidade litorânea.',
+    coverUrl: buildDemoCoverDataUri('Arquivo Zero', '3 Capítulos Free · Mistério', '#3730a3', '#1e1b4b'),
+    status: 'completed',
+    year: 2025,
+    contentRating: 'safe',
+    tags: [DEMO_TAGS[1]!, DEMO_TAGS[5]!],
+    availableLanguages: ['pt-br'],
+    authors: ['Núcleo Narrativo Demo'],
+    updatedAt: '2026-10-28T09:00:00.000Z',
+    isDemo: true
+  },
+  {
+    provider: 'demo',
+    id: 'demo-reino-cinzas',
+    title: 'O Reino Sob as Cinzas',
+    synopsis:
+      'Após a queda da torre solar, uma jovem restauradora de selos reais busca reacender os faróis de pedra que protegem os vales do norte.',
+    coverUrl: buildDemoCoverDataUri('Reino das Cinzas', '4 Capítulos · Fantasia e Mistério', '#92400e', '#1c1917'),
+    status: 'ongoing',
+    year: 2026,
+    contentRating: 'safe',
+    tags: [DEMO_TAGS[2]!, DEMO_TAGS[5]!],
+    availableLanguages: ['pt-br', 'en'],
+    authors: ['Estúdio Sintético MangaCloud'],
+    updatedAt: '2026-11-12T10:00:00.000Z',
     isDemo: true
   }
 ];
+
+function createDemoSeriesChapters(
+  mangaId: string,
+  prefix: string,
+  language: string,
+  group: string,
+  titles: string[]
+): RawChapterDto[] {
+  return titles.map((title, index) => {
+    const number = index + 1;
+    return {
+      provider: 'demo',
+      id: `${prefix}-${language}-cap-${number}`,
+      mangaId,
+      title,
+      volumeNumber: '1',
+      chapterNumber: String(number),
+      language,
+      scanlationGroup: group,
+      pagesCount: number > 3 ? 5 : 4,
+      externalUrl: null,
+      publishedAt: `2026-10-${String(number).padStart(2, '0')}T12:00:00.000Z`,
+      contentRating: 'safe'
+    };
+  });
+}
 
 const DEMO_RAW_CHAPTERS: RawChapterDto[] = [
   // 1) demo-alquimia-astral (pt-br): capítulos 1, 2, 3, 4 simples
@@ -363,7 +482,48 @@ const DEMO_RAW_CHAPTERS: RawChapterDto[] = [
     externalUrl: null,
     publishedAt: '2025-11-10T10:00:00.000Z',
     contentRating: 'safe'
-  }
+  },
+  ...createDemoSeriesChapters('demo-guardioes-aurora', 'demo-ga', 'pt-br', 'MangaCloud Originals BR', [
+    'Os Mapas da Bússola Vermelha',
+    'Tempestade no Estreito Aéreo',
+    'A Ilha do Farol Partido',
+    'O Segredo da Rota Proibida (Pro)'
+  ]),
+  ...createDemoSeriesChapters('demo-guardioes-aurora', 'demo-ga', 'en', 'MangaCloud Originals EN', [
+    'Charts of the Crimson Compass',
+    'Storm Over the Sky Strait'
+  ]),
+  ...createDemoSeriesChapters('demo-ecos-abismo', 'demo-ea', 'pt-br', 'Oficina Demo BR', [
+    'Sinal no Setor Subterrâneo',
+    'A Engrenagem Silenciosa',
+    'Frequência de Emergência',
+    'Câmara do Reator Antigo (Pro)'
+  ]),
+  ...createDemoSeriesChapters('demo-lamina-vento', 'demo-lv', 'pt-br', 'Coletivo Traço Livre', [
+    'A Mensagem do Vale',
+    'Ponte das Quatro Torres',
+    'Duelo Sob a Chuva',
+    'A Travessia do Equinócio (Pro)'
+  ]),
+  ...createDemoSeriesChapters('demo-lamina-vento', 'demo-lv', 'en', 'Free Stroke Scans', [
+    'Message from the Valley',
+    'Bridge of Four Towers'
+  ]),
+  ...createDemoSeriesChapters('demo-arquivo-zero', 'demo-az', 'pt-br', 'Núcleo Narrativo BR', [
+    'A Fotografia Sem Data',
+    'Relógio da Estação Sul',
+    'Último Registro de Névoa'
+  ]),
+  ...createDemoSeriesChapters('demo-reino-cinzas', 'demo-rc', 'pt-br', 'MangaCloud Originals BR', [
+    'Brasas na Torre Solar',
+    'O Primeiro Selo de Pedra',
+    'Vigília na Muralha Norte',
+    'A Chama da Coroa Antiga (Pro)'
+  ]),
+  ...createDemoSeriesChapters('demo-reino-cinzas', 'demo-rc', 'en', 'MangaCloud Originals EN', [
+    'Embers in the Sun Tower',
+    'The First Stone Seal'
+  ])
 ];
 
 export class DemoCatalogProvider implements CatalogProvider {
