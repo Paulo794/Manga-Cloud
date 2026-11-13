@@ -205,6 +205,11 @@ export function createAuthHandlers(db: AuthDbAdapter = pool as unknown as AuthDb
         origin = new URL(configuredBaseUrl);
         if (!['http:', 'https:'].includes(origin.protocol) || origin.username || origin.password || origin.search || origin.hash || origin.pathname !== '/') throw new Error('Invalid origin');
       } catch { res.status(503).json({ error: 'Recuperação de senha não configurada.' }); return; }
+      const mailPort = Number(process.env.MAILTRAP_PORT || 2525);
+      if (!process.env.MAILTRAP_HOST?.trim() || !Number.isInteger(mailPort) || mailPort < 1 || mailPort > 65535) {
+        res.status(503).json({ code: 'SMTP_NOT_CONFIGURED', error: 'Recuperação de senha por email não configurada neste ambiente.' });
+        return;
+      }
       const [rows] = await db.query<RowDataPacket[]>('SELECT id FROM usuarios WHERE email = ?', [email]);
       const user = rows[0];
 
