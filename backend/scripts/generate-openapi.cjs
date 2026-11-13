@@ -43,7 +43,6 @@ route('/estantes/{id}/capa', 'delete', 'Remover capa própria', { status: '204' 
 route('/favoritos', 'get', 'Listar favoritos próprios', { query: paged });
 route('/favoritos', 'post', 'Favoritar referência externa', { status: '201', body: object({ provider: reference, mangaId: string }) });
 route('/favoritos/{provider}/{mangaId}', 'delete', 'Remover favorito próprio', { status: '204' });
-route('/mangas/config', 'get', 'Provedor padrão configurado no servidor', { public: true, response: object({ defaultProvider: reference }) });
 route('/mangas', 'get', 'Buscar obras na fonte selecionada, sem fallback silencioso', { optional: true, query: [...paged, ['provider', reference], ['q', string], ['tag', string], ['idioma', string]] });
 route('/mangas/tags', 'get', 'Consultar tags da fonte', { public: true, query: [['provider', reference]] });
 route('/mangas/{provider}/{mangaId}', 'get', 'Detalhar obra permitida', { public: true });

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import type { Pool, RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 import { AuthRequest, makeAuthenticate } from '../middleware/authMiddleware';
-import { getCatalogProvider, getDefaultCatalogProvider, assertValidProvider } from '../providers';
+import { getCatalogProvider, assertValidProvider } from '../providers';
 import { HttpError, text, pagination, missing } from '../http';
 import { currentSubscription, authorizeChapter, hydrateReferences } from '../services/library';
 import { requireRole } from '../middleware/requireRole';
@@ -10,16 +10,13 @@ import { mangadexCovers } from '../services/mangadexCovers';
 
 export function readingRouter(db: Pool, emit: typeof audit = audit) {
   const router = Router();
-  router.get('/mangas/config', (_req, res) => {
-    res.json({ defaultProvider: getDefaultCatalogProvider() });
-  });
   router.get('/mangas', makeAuthenticate(db, true), async (req, res) => {
     const { page, limit } = pagination(req.query);
-    const provider = assertValidProvider(req.query.provider, getDefaultCatalogProvider());
+    const provider = assertValidProvider(req.query.provider, 'mangadex');
     const result = await getCatalogProvider(provider).searchMangas({ query: typeof req.query.q === 'string' ? req.query.q.slice(0, 150) : '', tag: typeof req.query.tag === 'string' ? req.query.tag : '', language: typeof req.query.idioma === 'string' ? req.query.idioma : 'pt-br', page, limit });
     res.json({ ...result, items: result.items.map(manga => mangadexCovers.present(manga)) });
   });
-  router.get('/mangas/tags', async (req, res) => res.json(await getCatalogProvider(assertValidProvider(req.query.provider, getDefaultCatalogProvider())).getTags()));
+  router.get('/mangas/tags', async (req, res) => res.json(await getCatalogProvider(assertValidProvider(req.query.provider, 'mangadex')).getTags()));
   router.get('/mangas/mangadex/:mangaId/capa', async (req, res) => {
     const cover = await mangadexCovers.get(text(req.params.mangaId, 100, true));
     res.set('Cache-Control', 'public, max-age=300').type(cover.mime).send(cover.data);
