@@ -22,6 +22,7 @@ backend/stripe
 
 # Relatorios, rascunhos e capturas brutas fora do Git
 *.pdf
+!/docs/P2_ISW055_Paulo_Henrique_Antunes.pdf
 P1_Final.typ
 prints/
 fotos/

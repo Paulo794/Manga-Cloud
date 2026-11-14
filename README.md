@@ -6,6 +6,7 @@ Desenvolvido para a disciplina de Introdução à Computação em Nuvem (ISW055)
 
 ### Documentação e evidências das atividades
 
+- **[P2 — Relatório consolidado: arquitetura e atividades 7 a 11 (PDF)](docs/P2_ISW055_Paulo_Henrique_Antunes.pdf)**
 - **[Atividade 10 — Seu negócio no ar](docs/atividade-10/README.md)** (`docs/atividade-10`)
 - **[Atividade 11 — SaaS completo com Stripe](docs/atividade-11/README.md)** (`docs/atividade-11`)
 
@@ -173,6 +174,7 @@ Caso deseje rodar os serviços fora do Docker local:
 
 ### Documentação das atividades
 
+- **[P2 — Relatório consolidado (PDF)](docs/P2_ISW055_Paulo_Henrique_Antunes.pdf)**: arquitetura do SaaS, quadro de entregas e atividades 7 a 11, com as capturas revisadas. O PDF fica diretamente em `docs/`.
 - **[Atividade 10 — Seu negócio no ar](docs/atividade-10/README.md)** (`docs/atividade-10/`): visão do domínio, catálogos AniList (prévia ilustrativa), MangaDex (páginas reais) e Demo, estantes com capa no MinIO, contratos Swagger/OpenAPI, RBAC (`403`), isolamento (`404`) e eventos na auditoria.
 - **[Atividade 11 — SaaS completo com Stripe](docs/atividade-11/README.md)** (`docs/atividade-11/`): limite de `3` estantes no Free, Checkout Stripe teste (`4242` · `R$ 9,90/mês`), confirmação via webhook idempotente, Stripe Billing Portal, gerenciamento de renovação/inadimplência e métricas/MRR no Painel Admin.
 
