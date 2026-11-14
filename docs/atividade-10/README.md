@@ -1,79 +1,89 @@
-# Documentação e Evidências — Atividade 10 (MangaCloud)
+# Documentação e Evidências — Atividade 10 (Seu negócio no ar)
 
-Pasta organizada para reunir a documentação de apresentação e as capturas de tela do projeto **MangaCloud** (disciplina **ISW055**, professor **@siriani**).
+Pasta organizada com a documentação e as capturas de tela do projeto **MangaCloud** para a **Atividade 10** (disciplina **ISW055**, professor **@siriani**).
 
 - **Repositório:** `https://github.com/Paulo794/Manga-Cloud`
-- **Commit base da aplicação (`main`):** `ce8cd24`
+- **Commit base registrado:** `ad96047` (com consolidação local de **13/11/2026**)
+- **Data das capturas:** **13/11/2026**
+- **Ambiente das capturas:** **Ambiente local isolado** (instância efêmera em loopback com MariaDB `11.8`, MinIO, Redis e container/serviços da aplicação, utilizando exclusivamente contas sintéticas `@mangacloud.demo` e tokens sanitizados no Swagger com `Bearer [token-omitido]`)
 
-> **Importante:** as capturas reunidas abaixo documentam a aplicação e os fluxos executados em ambiente local/QA (`localhost:8224` e prévia ao vivo em loopback). Conforme o checklist da disciplina, a publicação final da issue deve confirmar e anexar também os prints coletados diretamente no subdomínio público e no Portainer (`1 GB` por container, `403`, `404/403`, Painel Admin e MinIO).
-
----
-
-## Índice de Evidências (`imagens/`)
-
-| # | Arquivo | Seção / Fluxo Demonstrado |
-| :---: | --- | --- |
-| 01 | [`01-landing-sem-login.png`](imagens/01-landing-sem-login.png) | Landing page aberta sem login e apresentação da proposta |
-| 02 | [`02-catalogo-demo.png`](imagens/02-catalogo-demo.png) | Catálogo Demo identificado com 3 obras sintéticas |
-| 03 | [`03-obra-demo.png`](imagens/03-obra-demo.png) | Página da obra Demo mostrando capítulos Free (1 a 3) e bloqueio Pro (4) |
-| 04 | [`04-estantes-com-capa-minio.png`](imagens/04-estantes-com-capa-minio.png) | Minhas Estantes privadas com capa personalizada armazenada no MinIO |
-| 05 | [`05-leitor-web-demo.png`](imagens/05-leitor-web-demo.png) | Leitor web paginado aberto no capítulo demonstrativo |
-| 06 | [`06-swagger-openapi.png`](imagens/06-swagger-openapi.png) | Documentação interativa da API no Swagger (`/api-docs`) |
-| 07 | [`07-catalogo-anilist-ao-vivo.png`](imagens/07-catalogo-anilist-ao-vivo.png) | Catálogo real carregado via **API pública AniList** (`12/12` capas reais) |
-| 08 | [`08-catalogo-mangadex-ao-vivo.png`](imagens/08-catalogo-mangadex-ao-vivo.png) | Catálogo real carregado via **API MangaDex** (`12/12` capas reais via proxy) |
-| 09 | [`09-stripe-assinatura-confirmada.png`](imagens/09-stripe-assinatura-confirmada.png) | Fluxo de assinatura Pro com Stripe teste confirmado e gestão de renovação |
-| 10 | [`10-leitor-slime-capa.png`](imagens/10-leitor-slime-capa.png) | Leitura real no navegador — *Tensei Shitara Slime Datta Ken* (capa/arte) |
-| 11 | [`11-leitor-slime-mangadex-capitulo.png`](imagens/11-leitor-slime-mangadex-capitulo.png) | Leitor web autenticado em capítulo real MangaDex (*O Fim da Humilhação*, pág. 4/48) |
-| 12 | [`12-leitor-solo-leveling-ptbr.png`](imagens/12-leitor-solo-leveling-ptbr.png) | Leitura de página real em PT-BR — *Solo Leveling* |
-| 13 | [`13-leitor-kumo-desu-ga-ptbr.png`](imagens/13-leitor-kumo-desu-ga-ptbr.png) | Leitura de página real em PT-BR — *Kumo desu ga, Nani ka?* (#73-1) |
+> [!IMPORTANT]
+> **Natureza das evidências e pendências para publicação:** todas as capturas nesta pasta são **evidências locais** (executadas antes do redeploy público autorizado pelo usuário). Conforme a checklist da Atividade 10, permanecem **pendentes** para a entrega definitiva:
+> 1. Captura do **Portainer** mostrando a stack saudável com limite efetivo de **`1 GB`** por container no ambiente alvo;
+> 2. Repetição e coleta de capturas equivalentes diretamente no **subdomínio público** (`landing`, listagem do recurso principal, `403` por papel, `404` ao tentar acessar registro alheio, logs no Painel Admin e arquivo privado no MinIO);
+> 3. Publicação autorizada da **issue final de entrega** (ainda não criada).
 
 ---
 
-## 1. Landing Page, Catálogos e API
+## Matriz de Cobertura — Atividade 10
 
-### Landing Page aberta sem login
+| Requisito da Atividade 10 | Evidência local atual (13/11/2026) | Status no ambiente público / Portainer |
+| --- | --- | --- |
+| Landing aberta sem login | [`01-landing-sem-login.png`](imagens/01-landing-sem-login.png) | Pendente validar no subdomínio público |
+| Listagem do recurso principal (`estantes`) | [`09-estantes-listagem-e-capa-minio.png`](imagens/09-estantes-listagem-e-capa-minio.png) | Pendente validar no subdomínio público |
+| Arquivo no MinIO (capa privada sem expor credenciais/URL pública) | [`09-estantes-listagem-e-capa-minio.png`](imagens/09-estantes-listagem-e-capa-minio.png) e [`10-estante-detalhe-capa-minio.png`](imagens/10-estante-detalhe-capa-minio.png) | Pendente validar no ambiente público/MinIO |
+| Bloqueio `403` por papel (`leitor` em rota `admin`) | [`11-rbac-403-papel-swagger.png`](imagens/11-rbac-403-papel-swagger.png) | Pendente repetir no subdomínio público |
+| Bloqueio `404` ao acessar registro alheio (Conta B → Conta A) | [`12-isolamento-404-registro-alheio-swagger.png`](imagens/12-isolamento-404-registro-alheio-swagger.png) e [`13-isolamento-estante-alheia-ui.png`](imagens/13-isolamento-estante-alheia-ui.png) | Pendente repetir no subdomínio público |
+| Eventos de negócio registrados na Auditoria (`/admin`) | [`14-admin-logs-auditoria.png`](imagens/14-admin-logs-auditoria.png) | Pendente validar no subdomínio público |
+| Catálogos AniList (prévia ilustrativa), MangaDex (páginas reais) e Demo | [`02`](imagens/02-catalogo-anilist-ao-vivo.png) a [`08`](imagens/08-catalogo-demo.png) | Comprovado localmente (13/11/2026) |
+| Documentação Swagger / OpenAPI (`/api-docs`) | [`16-swagger-openapi.png`](imagens/16-swagger-openapi.png) | Disponível após redeploy |
+| Stack saudável no Portainer com limite efetivo de `1 GB` | — | **Pendente** (aguardando publicação/Portainer) |
+
+Veja também as evidências financeiras e do portal SaaS na pasta [Atividade 11](../atividade-11/README.md) e o guia de reprodução local no [README principal](../../README.md).
+
+---
+
+## 1. Landing Page, Catálogos Reais e OpenAPI
+
+### Landing Page aberta sem login (ambiente local)
 ![Landing page aberta sem login](imagens/01-landing-sem-login.png)
 
-### Catálogo real — AniList (provedor padrão configurado)
-![Catálogo real pela API pública do AniList](imagens/07-catalogo-anilist-ao-vivo.png)
+### Catálogo real — AniList (provedor padrão · metadados e capas reais)
+![Catálogo real pela API pública do AniList](imagens/02-catalogo-anilist-ao-vivo.png)
 
-### Catálogo real — MangaDex (capas servidas via proxy do backend)
-![Catálogo real pela API do MangaDex](imagens/08-catalogo-mangadex-ao-vivo.png)
+### Detalhe de obra no AniList — identificação explícita de prévia ilustrativa
+![Obra no AniList indicando prévia ilustrativa](imagens/03-obra-anilist-capitulos-previa.png)
 
-### Catálogo Demo identificado (validação de regras e paywall)
-![Catálogo Demo identificado](imagens/02-catalogo-demo.png)
+### Leitor Web — AniList (`ANILIST · PRÉVIA` ilustrativa, sem páginas externas de capítulos)
+![Leitor com prévia ilustrativa identificada do AniList](imagens/04-leitor-anilist-previa-ilustrativa.png)
 
-### Documentação OpenAPI / Swagger (`/api-docs`)
-![Swagger OpenAPI do MangaCloud](imagens/06-swagger-openapi.png)
+### Catálogo real — MangaDex (capas reais via proxy do backend)
+![Catálogo real pela API do MangaDex](imagens/05-catalogo-mangadex-ao-vivo.png)
+
+### Detalhe de obra no MangaDex — capítulos disponíveis em PT-BR e créditos dos grupos
+![Obra MangaDex com capítulos reais em PT-BR](imagens/06-obra-mangadex-capitulos.png)
+
+### Leitor Web — MangaDex (página real de capítulo em PT-BR)
+![Leitor web exibindo página real do MangaDex em PT-BR](imagens/07-leitor-mangadex-pagina-real.png)
+
+### Catálogo Demo identificado (obras sintéticas para demonstração)
+![Catálogo Demo identificado](imagens/08-catalogo-demo.png)
+
+### Swagger / OpenAPI (`/api-docs`)
+![Swagger OpenAPI do MangaCloud](imagens/16-swagger-openapi.png)
 
 ---
 
-## 2. Estantes Privadas (MinIO), Obra, Paywall e Assinatura Stripe
+## 2. Recurso Principal, MinIO Privado, Segurança e Auditoria
 
-### Listagem de Estantes Privadas com capa no MinIO
-![Listagem de estantes com capa privada salva no MinIO](imagens/04-estantes-com-capa-minio.png)
+### Listagem do recurso principal — Estantes privadas com capa servida do MinIO
+![Listagem de estantes com capa privada salva no MinIO](imagens/09-estantes-listagem-e-capa-minio.png)
 
-### Detalhe da obra e controle Free / Pro
-![Detalhe da obra com capítulos Free e bloqueio Pro](imagens/03-obra-demo.png)
+### Detalhe da estante — Upload privado no MinIO e referência adicionada
+![Detalhe da estante com capa privada no MinIO e item vinculado](imagens/10-estante-detalhe-capa-minio.png)
 
-### Assinatura Pro confirmada (Stripe em modo teste)
-![Tela de planos com assinatura Pro teste confirmada](imagens/09-stripe-assinatura-confirmada.png)
+### Controle de acesso por papel (`403 FORBIDDEN` no Swagger)
+Conta `leitor` (`lucas.free@mangacloud.demo`) autenticada tentando `GET /api/admin/metricas` no Swagger: bloqueio `403 FORBIDDEN`.
+![Swagger exibindo resposta 403 FORBIDDEN para papel leitor](imagens/11-rbac-403-papel-swagger.png)
 
----
+### Isolamento entre contas (`404 NOT_FOUND` na API e na interface)
+Conta B (`marina.pro@mangacloud.demo`) tentando acessar a estante privada `1` pertencente à Conta A (`lucas.free@mangacloud.demo`):
+![Swagger exibindo resposta 404 NOT_FOUND ao tentar acessar registro alheio](imagens/12-isolamento-404-registro-alheio-swagger.png)
 
-## 3. Leitor Web e Páginas Reais em PT-BR
+![Interface web exibindo Registro não encontrado ao tentar abrir estante alheia](imagens/13-isolamento-estante-alheia-ui.png)
 
-### Leitor Web — Modo Demonstração
-![Leitor web no capítulo demonstrativo](imagens/05-leitor-web-demo.png)
+### Auditoria e logs de negócio (`/admin`) + saúde das fontes (`/curadoria`)
+Registro em tempo real no Redis Streams consumido pelo Painel Admin (`estante.criada`, `estante.capa_enviada`, `estante.item_adicionado`, `estante.limite_atingido`, `acesso.negado HTTP 403`, `acesso.negado HTTP 404`, `leitura.liberada`, `leitura.bloqueada`) e visão técnica de curadoria:
+![Painel Admin com métricas e trilha de auditoria](imagens/14-admin-logs-auditoria.png)
 
-### Leitor Web — Capítulo real MangaDex (*O Fim da Humilhação*, pág. 4 de 48)
-![Leitor web com página real do MangaDex em PT-BR](imagens/11-leitor-slime-mangadex-capitulo.png)
-
-### Páginas reais exibidas no leitor — *Tensei Shitara Slime Datta Ken*
-![Capa/arte no leitor de Tensei Shitara Slime](imagens/10-leitor-slime-capa.png)
-
-### Páginas reais exibidas no leitor — *Solo Leveling* (PT-BR)
-![Página colorida de Solo Leveling em PT-BR](imagens/12-leitor-solo-leveling-ptbr.png)
-
-### Páginas reais exibidas no leitor — *Kumo desu ga, Nani ka?* (PT-BR)
-![Página de Kumo desu ga, Nani ka? em PT-BR](imagens/13-leitor-kumo-desu-ga-ptbr.png)
+![Painel de Curadoria com saúde das fontes e fila de limpeza](imagens/15-curadoria-saude-fontes.png)
