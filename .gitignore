@@ -2,9 +2,12 @@ node_modules/
 backend/node_modules/
 frontend/node_modules/
 auth-service/node_modules/
+log-service/node_modules/
 .env
 backend/.env
 frontend/.env
+auth-service/.env
+log-service/.env
 dist/
 .local/
 
@@ -17,29 +20,20 @@ backend/src/**/*.map
 typst
 backend/stripe
 
-# Relatorios e arquivos da P1
+# Relatorios, rascunhos e capturas brutas fora do Git
 *.pdf
 P1_Final.typ
 prints/
+fotos/
+docs/qa/evidencias/
 
-# Conversas, prompts e rascunhos de IA
+# Conversas, prompts e planejamento intermediario de IA
 prd-claude/
 resumo/
 prd-documentacaoatividades/
 prd-documentaçãoatividades/
 db/002_seed_temporadas.sql
-docs/ROTEIRO_*.md
-docs/STATUS_*.md
-docs/REVISAO_*.md
-docs/QA_*.md
-docs/ENTREGA_*.md
-docs/historico/
-docs/qa/
-tests/
-scripts/qa/
-
-# Documentacoes internas e scripts locais
-docs/EXECUCAO_LOCAL_MANGACLOUD.md
-docs/OPERACAO_MANGACLOUD.md
+docs/ROTEIRO_ATIVIDADE_10_AGENDA_BARBEARIA.md
+docs/REVISAO_QA_*.md
 docs/PRD_ATIVIDADE_10_MANGACLOUD.md
-scripts/
+docs/QA_FASE_*.md

@@ -8,6 +8,7 @@
   },
   "scripts": {
     "start": "node scripts/dev/local.cjs up",
+    "build:local": "node scripts/dev/local.cjs build",
     "stop": "node scripts/dev/local.cjs stop",
     "status": "node scripts/dev/local.cjs status",
     "logs": "node scripts/dev/local.cjs logs",

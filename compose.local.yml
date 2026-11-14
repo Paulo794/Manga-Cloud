@@ -8,6 +8,10 @@ x-service: &service
   labels: *labels
   mem_limit: 1g
   restart: unless-stopped
+  pull_policy: missing
+
+x-local-service: &local-service
+  <<: *service
   pull_policy: never
 
 x-db: &database
@@ -88,7 +92,7 @@ services:
       retries: 25
 
   init:
-    <<: *service
+    <<: *local-service
     image: ${MC_LOCAL_APP_IMAGE}
     restart: "no"
     command: [sh, -c, "npm run db:migrate && npm run db:seed"]
@@ -97,7 +101,7 @@ services:
       db: { condition: service_healthy }
 
   log-service:
-    <<: *service
+    <<: *local-service
     image: ${MC_LOCAL_LOG_IMAGE}
     environment:
       LOG_PORT: "3002"
@@ -113,7 +117,7 @@ services:
       retries: 20
 
   auth-service:
-    <<: *service
+    <<: *local-service
     image: ${MC_LOCAL_AUTH_IMAGE}
     environment:
       <<: *database
@@ -135,7 +139,7 @@ services:
       retries: 20
 
   app:
-    <<: *service
+    <<: *local-service
     image: ${MC_LOCAL_APP_IMAGE}
     dns:
       - 8.8.8.8

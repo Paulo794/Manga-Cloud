@@ -18,6 +18,9 @@ function ownsSubscription(subscription: Stripe.Subscription, user: RowDataPacket
   return subscription.livemode === false && !!user.billing_identity && customer === user.stripe_customer_id &&
     subscription.metadata?.app === 'mangacloud' && subscription.metadata?.userId === String(user.id) && subscription.metadata?.billingIdentity === user.billing_identity;
 }
+function hasScheduledCancellation(subscription: Pick<Stripe.Subscription, 'cancel_at_period_end' | 'cancel_at'>) {
+  return Boolean(subscription.cancel_at_period_end || subscription.cancel_at);
+}
 function billingError(error: unknown) {
   if (error instanceof HttpError) return error;
   const message = typeof (error as { message?: unknown })?.message === 'string' ? (error as { message: string }).message : '';
@@ -89,9 +92,10 @@ export function billingRouter(db: Pool, clientFactory = getStripe, emit: typeof 
         const subscription = await stripe.subscriptions.retrieve(rows[0].stripe_subscription_id);
         if (!users[0] || !ownsSubscription(subscription, users[0])) throw new HttpError(409, 'BILLING_ACCOUNT_MISMATCH', 'Não foi possível confirmar o vínculo da assinatura.');
         if (!['active', 'past_due'].includes(subscription.status) || (!cancel && subscription.status !== 'active')) throw new HttpError(409, 'SUBSCRIPTION_NOT_MANAGEABLE', 'Esta assinatura não permite alterar a renovação.');
-        if (subscription.cancel_at_period_end !== cancel) {
-          const updated = await stripe.subscriptions.update(subscription.id, { cancel_at_period_end: cancel }, { idempotencyKey: `mangacloud-renewal-${crypto.randomUUID()}` });
-          if (!ownsSubscription(updated, users[0]) || updated.cancel_at_period_end !== cancel) throw new HttpError(503, 'BILLING_UNAVAILABLE', 'O Stripe ainda não confirmou a mudança.');
+        if (hasScheduledCancellation(subscription) !== cancel) {
+          const patch: Stripe.SubscriptionUpdateParams = cancel ? { cancel_at_period_end: true } : subscription.cancel_at ? { cancel_at: '' } : { cancel_at_period_end: false };
+          const updated = await stripe.subscriptions.update(subscription.id, patch, { idempotencyKey: `mangacloud-renewal-${crypto.randomUUID()}` });
+          if (!ownsSubscription(updated, users[0]) || hasScheduledCancellation(updated) !== cancel) throw new HttpError(503, 'BILLING_UNAVAILABLE', 'O Stripe ainda não confirmou a mudança.');
         }
         // Confirma apenas a renovação. A concessão de Pro continua dependendo
         // de pagamento confirmado pelo webhook, nunca desta ação do cliente.
@@ -174,9 +178,10 @@ export function stripeWebhook(db: Pool, emit: typeof audit = audit, clientFactor
       const until = paid && end ? new Date(end * 1000) : null;
       const effectiveStatus = event.type === 'invoice.payment_failed' && !paid && latest.status === 'active' ? 'past_due' : latest.status;
       const isActivePro = !!(until && until.getTime() > Date.now());
+      const scheduledCancel = !['canceled', 'incomplete_expired'].includes(effectiveStatus) && hasScheduledCancellation(latest);
       await conn.query(`INSERT INTO assinaturas (usuario_id, stripe_customer_id, stripe_subscription_id, price_id, status, acesso_ate, cancel_at_period_end, ultimo_evento_stripe_ts)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE stripe_customer_id=VALUES(stripe_customer_id), stripe_subscription_id=VALUES(stripe_subscription_id), price_id=VALUES(price_id), status=VALUES(status), acesso_ate=VALUES(acesso_ate), cancel_at_period_end=VALUES(cancel_at_period_end), ultimo_evento_stripe_ts=GREATEST(COALESCE(ultimo_evento_stripe_ts,0), VALUES(ultimo_evento_stripe_ts))`,
-      [userId, customer, latest.id, item?.price.id ?? '', effectiveStatus, until, latest.cancel_at_period_end ? 1 : 0, event.created]);
+      [userId, customer, latest.id, item?.price.id ?? '', effectiveStatus, until, scheduledCancel ? 1 : 0, event.created]);
       await conn.query('UPDATE usuarios SET stripe_customer_id=?, is_premium=? WHERE id=?', [customer, isActivePro ? 1 : 0, userId]);
       await conn.query("UPDATE stripe_eventos SET status='processed', erro_mensagem=NULL, processado_em=UTC_TIMESTAMP() WHERE event_id=?", [event.id]);
       await conn.commit();

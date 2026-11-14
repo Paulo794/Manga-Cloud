@@ -9,7 +9,9 @@ import Login from './pages/Login';
 import Work from './pages/Work';
 import Reader from './pages/Reader';
 import { Shelves, ShelfDetail } from './pages/Shelves';
-import { References, Profile, Plans } from './pages/Account';
+import { References } from './pages/Account';
+import { Profile } from './pages/Profile';
+import { Plans } from './pages/Plans';
 import { Admin, Curator } from './pages/Admin';
 import Recovery from './pages/Recovery';
 function Protected({ children, roles }: { children: ReactNode; roles?: string[] }) {
@@ -31,6 +33,6 @@ function Shell() {
     <Route path="/curadoria" element={<Protected roles={['curador', 'admin']}><Curator /></Protected>} /><Route path="/admin" element={<Protected roles={['admin']}><Admin /></Protected>} />
     <Route path="/catalog" element={<Navigate to="/catalogo" replace />} /><Route path="/profile" element={<Navigate to="/perfil" replace />} /><Route path="/success" element={<Navigate to="/sucesso" replace />} /><Route path="/cancel" element={<Navigate to="/assinatura" replace />} />
     <Route path="*" element={<section><h1>Página não encontrada.</h1><Link to="/">Voltar ao início</Link></section>} />
-  </Routes></main><footer className="site-footer"><Link className="brand" to="/">MANGA<span>CLOUD</span></Link><p>Histórias para explorar. Uma biblioteca para chamar de sua.</p><small>Projeto acadêmico ISW055 · MangaDex e grupos de tradução mantêm os créditos de suas obras. Catálogo Demo identificado.</small></footer></>;
+  </Routes></main><footer className="site-footer"><Link className="brand" to="/">MANGA<span>CLOUD</span></Link><p>Histórias para explorar. Uma biblioteca para chamar de sua.</p><small>Projeto acadêmico ISW055 · AniList fornece catálogo e metadados com prévia ilustrativa, MangaDex fornece páginas reais e o Demo demonstra o paywall.</small></footer></>;
 }
 export default function App() { return <BrowserRouter><SessionProvider><Shell /></SessionProvider></BrowserRouter>; }

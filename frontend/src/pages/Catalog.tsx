@@ -7,8 +7,8 @@ import type { Manga, Page } from '../domain';
 type CatalogProviderName = 'anilist' | 'mangadex' | 'demo';
 
 const PROVIDER_HINTS: Record<CatalogProviderName, string> = {
-  anilist: 'Catálogo e capas reais fornecidos pela API pública do AniList. Os capítulos abrem em prévia ilustrativa.',
-  mangadex: 'Obras e páginas fornecidas pelo MangaDex. A disponibilidade varia por obra e idioma.',
+  anilist: 'Catálogo, capas e metadados reais fornecidos pela API pública do AniList. Os capítulos abrem em prévia ilustrativa.',
+  mangadex: 'Obras e páginas reais fornecidas pelo MangaDex. A disponibilidade varia por obra e idioma.',
   demo: 'Demonstração identificada: obras sintéticas, com limite Free para testar o paywall.',
 };
 
