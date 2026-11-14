@@ -37,3 +37,6 @@ docs/ROTEIRO_ATIVIDADE_10_AGENDA_BARBEARIA.md
 docs/REVISAO_QA_*.md
 docs/PRD_ATIVIDADE_10_MANGACLOUD.md
 docs/QA_FASE_*.md
+
+tests/
+scripts/qa/
